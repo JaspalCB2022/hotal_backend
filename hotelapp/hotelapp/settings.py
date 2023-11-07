@@ -43,8 +43,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     #third party package
+    
     'rest_framework',
     'rest_framework_simplejwt',
+    'drf_spectacular',
+    "corsheaders",
     #local app module
     'account',
     'restaurant',

@@ -14,6 +14,8 @@ from django.db import models
 from django.dispatch import receiver
 from django.db.models.signals import post_save
 
+from restaurant.models import Restaurant
+
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, role="user", **extra_fields):
@@ -51,10 +53,12 @@ class User(AbstractBaseUser, PermissionsMixin):
         null=True,
         blank=True,
     )
+    
     password_reset_token = models.UUIDField(null=True, blank=True, unique=True)
     token_create_at = models.DateTimeField(null=True, blank=True, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE)
 
     objects = CustomUserManager()
 
