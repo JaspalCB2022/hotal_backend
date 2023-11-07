@@ -47,7 +47,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     #local app module
     'account',
-    
+    'restaurant',
 ]
 
 MIDDLEWARE = [
