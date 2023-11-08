@@ -47,7 +47,7 @@ class ListUserApiView(ListAPIView):
 
     def get_queryset(self):
         qs = super().get_queryset()
-        return qs #qs.exclude(role="superadmin")
+        return qs.exclude(role="superadmin")
 
 
 class ResetPasswordAPIView(APIView):
@@ -129,3 +129,5 @@ class ForgotPasswordApiView(APIView):
         )
         # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+class
