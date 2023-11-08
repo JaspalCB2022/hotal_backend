@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from . models import Restaurant
+from .models import Restaurant
+
 
 class RestaurantInputSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=300)
@@ -10,28 +11,42 @@ class RestaurantInputSerializer(serializers.Serializer):
     address = serializers.CharField()
 
     def validate(self, data):
-        opening_time = data.get('opening_time')
-        closing_time = data.get('closing_time')
+        opening_time = data.get("opening_time")
+        closing_time = data.get("closing_time")
         if opening_time and closing_time:
             if opening_time >= closing_time:
-                raise serializers.ValidationError("Closing time should be after opening time.")
+                raise serializers.ValidationError(
+                    "Closing time should be after opening time."
+                )
         return data
-    
+
     def create(self, validated_data):
         return Restaurant.objects.create(**validated_data)
-    
+
     def update(self, instance, validated_data):
-        instance.email = validated_data.get('name', instance.name)
-        instance.content = validated_data.get('description', instance.description)
-        instance.created = validated_data.get('opening_time', instance.opening_time)
-        instance.created = validated_data.get('opening_time', instance.opening_time)
-        instance.created = validated_data.get('closing_time', instance.closing_time)
-        instance.created = validated_data.get('address', instance.address)
+        instance.name = validated_data.get("name", instance.name)
+        instance.description = validated_data.get("description", instance.description)
+        instance.opening_time = validated_data.get(
+            "opening_time", instance.opening_time
+        )
+        instance.closing_time = validated_data.get(
+            "closing_time", instance.closing_time
+        )
+        instance.phone_number = validated_data.get(
+            "phone_number", instance.phone_number
+        )
+        instance.address = validated_data.get("address", instance.address)
+        instance.save()
         return instance
 
-    
 
 class RestaurantOutputSerializer(serializers.ModelSerializer):
-        class Meta:
-            model = Restaurant
-            fields = "__all__"
+    restaurant_category = serializers.StringRelatedField(read_only=True)
+    operating_hours = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Restaurant
+        fields = "__all__"
+
+    def get_operating_hours(self, obj):
+        return obj.get_operating_hours()
