@@ -68,7 +68,7 @@ ROOT_URLCONF = 'hotelapp.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': ['templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -141,10 +141,14 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-#
+
 # accounts settings
 AUTH_USER_MODEL = "account.User"
 
+# Email Settings
+
+EMAIL_BACKEND = "django.core.mail.backends.filebased.EmailBackend"
+EMAIL_FILE_PATH = os.path.join(BASE_DIR, "sent_emails")
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=6),
@@ -156,7 +160,10 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
+    "TOKEN_OBTAIN_SERIALIZER": "account.serializers.MyTokenObtainPairSerializer",
 }
+
+
 
 # REST_FRAMEWORK_SETTINGS
 REST_FRAMEWORK = {
@@ -166,7 +173,7 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    # "EXCEPTION_HANDLER": "api.error_handler.custom_exception_handler",
+    "EXCEPTION_HANDLER": "hotelapp.error_handler.custom_exception_handler",
 }
 
 SPECTACULAR_SETTINGS = {
