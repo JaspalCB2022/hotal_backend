@@ -34,17 +34,30 @@ from .utils import send_email_message
 from rest_framework.permissions import IsAuthenticated
 
 
-class CurrentUserApiView(RetrieveAPIView):
+class CurrentUserApiView(APIView):
     """
     Api view for listing users
 
     This view retrieves a list of users, excluding those with the "superadmin" role.
     It is restricted to superadmin users only.
     """
-    serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
-    def get_object(self):
-        return self.request.user
+    serializer_class = UserSerializer
+
+    def get(self, request, format=None):
+        """
+        Return a list of all users.
+        """ 
+        try:
+            print("Request>>>", self.request)
+            userObj = User.objects.get(email=self.request.user)
+            user = UserSerializer(userObj).data
+            
+            resObj = {'status':status.HTTP_200_OK,'message':'', 'detail':user, 'error':False}
+            return Response(resObj, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            resObj = {'status':status.HTTP_200_OK,'message':'User does not exists.', 'detail':[], 'error':False}
+            return Response(resObj, status=status.HTTP_200_OK)
 
 
 
