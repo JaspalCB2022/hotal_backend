@@ -5,7 +5,6 @@ from rest_framework_simplejwt.views import (
     TokenBlacklistView,
     
 )
-
 from .views import ListUserApiView,ResetPasswordAPIView,ForgotPasswordApiView
 
 urlpatterns = [
@@ -15,5 +14,4 @@ urlpatterns = [
     path("list/", ListUserApiView.as_view(), name="list_user"),
     path("password/forgot/",ForgotPasswordApiView.as_view(),name='forgot_password'),
     path("password/change/<str:token>/",ResetPasswordAPIView.as_view(),name="reset_password")
-
 ]
