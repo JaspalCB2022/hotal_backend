@@ -5,9 +5,11 @@ from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 class UserSerializer(serializers.ModelSerializer):
+    first_name = serializers.CharField(default="DefaultFirstName")
+    last_name = serializers.CharField(default="DefaultFirstName")
+    
     phone_number = serializers.CharField(required=True)
     password = serializers.CharField(max_length=60, min_length=8, write_only=True)
-
     class Meta:
         model = get_user_model()
         fields = [
@@ -22,6 +24,7 @@ class UserSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "password",
+            'restaurant_id'
         ]
         read_only_fields = [
             "is_active",

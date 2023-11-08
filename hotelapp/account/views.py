@@ -31,23 +31,21 @@ from django.template.loader import render_to_string
 from django.contrib.sites.shortcuts import get_current_site
 from .permissions import IsSuperAdmin
 from .utils import send_email_message
+from rest_framework.permissions import IsAuthenticated
 
 
-class ListUserApiView(ListAPIView):
+class CurrentUserApiView(RetrieveAPIView):
     """
     Api view for listing users
 
     This view retrieves a list of users, excluding those with the "superadmin" role.
     It is restricted to superadmin users only.
     """
-
     serializer_class = UserSerializer
-    queryset = User.objects.all()
-    permission_classes = [IsSuperAdmin]
+    permission_classes = [IsAuthenticated]
+    def get_object(self):
+        return self.request.user
 
-    def get_queryset(self):
-        qs = super().get_queryset()
-        return qs.exclude(role="superadmin")
 
 
 class ResetPasswordAPIView(APIView):
