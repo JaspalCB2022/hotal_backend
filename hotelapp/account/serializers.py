@@ -2,12 +2,14 @@ from django.contrib.auth.password_validation import validate_password as valid_p
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
-
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 class UserSerializer(serializers.ModelSerializer):
+    first_name = serializers.CharField(default="DefaultFirstName")
+    last_name = serializers.CharField(default="DefaultFirstName")
+    
     phone_number = serializers.CharField(required=True)
     password = serializers.CharField(max_length=60, min_length=8, write_only=True)
-
     class Meta:
         model = get_user_model()
         fields = [
@@ -22,6 +24,7 @@ class UserSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "password",
+            'restaurant_id'
         ]
         read_only_fields = [
             "is_active",
@@ -177,3 +180,16 @@ class ChangePasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError(errors)
 
         return data
+
+
+
+
+class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """
+    Custom token serializer for obtaining JWT tokens with additional user role information.
+    """
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        token['role'] = user.role
+        return token

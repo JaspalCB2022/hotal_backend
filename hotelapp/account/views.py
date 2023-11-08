@@ -19,10 +19,10 @@ from django.contrib.auth import authenticate
 from .models import User
 from .serializers import (
     UserSerializer,
-    UserRegisterSerializer,
+    # UserRegisterSerializer,
     PasswordResetSerializer,
     ForgotPasswordSerializer,
-    ChangePasswordSerializer,
+    # ChangePasswordSerializer,
 )
 from drf_spectacular.utils import extend_schema
 from django.db import IntegrityError
@@ -31,23 +31,21 @@ from django.template.loader import render_to_string
 from django.contrib.sites.shortcuts import get_current_site
 from .permissions import IsSuperAdmin
 from .utils import send_email_message
+from rest_framework.permissions import IsAuthenticated
 
 
-class ListUserApiView(ListAPIView):
+class CurrentUserApiView(RetrieveAPIView):
     """
     Api view for listing users
 
     This view retrieves a list of users, excluding those with the "superadmin" role.
     It is restricted to superadmin users only.
     """
-
     serializer_class = UserSerializer
-    queryset = User.objects.all()
-    permission_classes = [IsSuperAdmin]
+    permission_classes = [IsAuthenticated]
+    def get_object(self):
+        return self.request.user
 
-    def get_queryset(self):
-        qs = super().get_queryset()
-        return qs.exclude(role="superadmin")
 
 
 class ResetPasswordAPIView(APIView):
@@ -76,7 +74,7 @@ class ResetPasswordAPIView(APIView):
         user = self.get_user(token)
         if user is None:
             return Response(
-                {"detail": "Invalid, expired, or used token"},
+                {"message": "Invalid, expired, or used token"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         serializer = PasswordResetSerializer(data=request.data)
@@ -88,7 +86,51 @@ class ResetPasswordAPIView(APIView):
         user.is_active = True
         user.save()
         return Response(
-            {"detail": "Password set successfully"},
+            {"message": "Password set successfully"},
+            status=status.HTTP_200_OK,
+        )
+        # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ResetPasswordAPIView(APIView):
+    """
+    API view for setting a user's password.
+
+    This view provides endpoints for setting a user's password using a valid password reset token.
+    """
+
+    def get_user(self, token):
+        try:
+            uuid_token = uuid.UUID(token)
+        except ValueError:
+            return None
+        try:
+            user = User.objects.get(password_reset_token=token)
+            if (timezone.now() - user.token_create_at).total_seconds() <= 300:
+                return user
+            else:
+                return None
+        except User.DoesNotExist:
+            return None
+
+    @extend_schema(request=None, responses=PasswordResetSerializer)
+    def post(self, request, token):
+        user = self.get_user(token)
+        if user is None:
+            return Response(
+                {"message": "Invalid, expired, or used token"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        serializer = PasswordResetSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        new_password = serializer.validated_data.get("password")
+        user.set_password(new_password)
+        user.password_reset_token = None
+        user.token_create_at = None
+        user.is_active = True
+        user.save()
+        return Response(
+            {"message": "Password set successfully"},
             status=status.HTTP_200_OK,
         )
         # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -130,4 +172,3 @@ class ForgotPasswordApiView(APIView):
         # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class
