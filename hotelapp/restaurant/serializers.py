@@ -1,3 +1,4 @@
+import re
 from rest_framework import serializers
 from .models import Restaurant
 
@@ -13,10 +14,17 @@ class RestaurantInputSerializer(serializers.Serializer):
     def validate(self, data):
         opening_time = data.get("opening_time")
         closing_time = data.get("closing_time")
+        phone_number = data.get("phone_number")
+
         if opening_time and closing_time:
             if opening_time >= closing_time:
                 raise serializers.ValidationError(
                     "Closing time should be after opening time."
+                )
+        if phone_number:
+            if not re.match(r"^\d{10}$", phone_number):
+                raise serializers.ValidationError(
+                    "Phone number must contain only digits and must be 10 digits."
                 )
         return data
 
