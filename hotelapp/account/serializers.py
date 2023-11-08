@@ -3,6 +3,7 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from restaurant.serializers import RestaurantOutputSerializer 
 
 class UserSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(default="DefaultFirstName")
@@ -10,6 +11,8 @@ class UserSerializer(serializers.ModelSerializer):
     
     phone_number = serializers.CharField(required=True)
     password = serializers.CharField(max_length=60, min_length=8, write_only=True)
+    restaurant = RestaurantOutputSerializer(many=False, required=False)
+
     class Meta:
         model = get_user_model()
         fields = [
@@ -24,7 +27,7 @@ class UserSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "password",
-            'restaurant_id'
+            'restaurant',
         ]
         read_only_fields = [
             "is_active",
@@ -32,6 +35,7 @@ class UserSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+
 
     def validate_password(self, value):
         valid_password(value)
