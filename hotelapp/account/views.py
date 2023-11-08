@@ -19,10 +19,10 @@ from django.contrib.auth import authenticate
 from .models import User
 from .serializers import (
     UserSerializer,
-    UserRegisterSerializer,
+    # UserRegisterSerializer,
     PasswordResetSerializer,
     ForgotPasswordSerializer,
-    ChangePasswordSerializer,
+    # ChangePasswordSerializer,
 )
 from drf_spectacular.utils import extend_schema
 from django.db import IntegrityError
