@@ -12,8 +12,9 @@ class UserSerializer(serializers.ModelSerializer):
 
     phone_number = serializers.CharField(required=True)
     password = serializers.CharField(max_length=60, min_length=8, write_only=True)
-    restaurant = RestaurantOutputSerializer(many=False, required=False)
+    # restaurant = RestaurantOutputSerializer(many=False, required=False, context = {"request": request} )
 
+    
     class Meta:
         model = get_user_model()
         fields = [
@@ -36,6 +37,8 @@ class UserSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+
+  
 
     def validate_password(self, value):
         valid_password(value)
@@ -80,6 +83,16 @@ class UserSerializer(serializers.ModelSerializer):
             )
         return value
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        request = self.context.get('request')
+        
+        if request:
+            representation['restaurant'] = RestaurantOutputSerializer(
+                instance.restaurant, context={'request': request}
+            ).data
+
+        return representation
 
 class UserRegisterSerializer(serializers.ModelSerializer):
     # password = serializers.CharField(max_length=60, min_length=6, write_only=True)

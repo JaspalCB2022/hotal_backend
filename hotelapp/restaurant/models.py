@@ -114,13 +114,7 @@ class MenuTypes(BaseModel):
 
 
 class Menu_Subtype(BaseModel):
-    CATEGORY = (
-        ("veg", "Veg"),
-        ("non-veg", "Non-Veg"),
-    )
-    categorytype = models.CharField(
-        max_length=20, choices=CATEGORY, null=True, default=None
-    )
+    
     name = models.CharField(max_length=20)
     menutype = models.ForeignKey(
         MenuTypes, on_delete=models.CASCADE, related_name="menusubtypes"
