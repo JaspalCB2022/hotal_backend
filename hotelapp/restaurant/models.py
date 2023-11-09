@@ -147,6 +147,8 @@ class UnitCategory(models.Model):
 
 
 class Inventory(BaseModel):
+    CATEGORY = (("veg", "Veg"), ("non-veg", "Non-Veg"), ("other", "Other"))
+
     name = models.CharField(max_length=20)
     restaurant = models.ForeignKey(
         Restaurant, on_delete=models.CASCADE, related_name="inventories"

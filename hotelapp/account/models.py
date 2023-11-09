@@ -58,7 +58,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     token_create_at = models.DateTimeField(null=True, blank=True, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE,blank=True,null=True)
+    restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, null=True, blank=True)
 
     objects = CustomUserManager()
 
