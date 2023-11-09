@@ -8,6 +8,11 @@ from drf_spectacular.utils import extend_schema
 from .serializers import RestaurantInputSerializer, RestaurantOutputSerializer
 from .models import Restaurant, Category
 from .permissions import IsSuperAdmin
+from account.serializers import UserRegisterSerializer
+from django.contrib.auth import get_user_model
+from django.db import transaction
+
+User = get_user_model()
 
 
 class RestaurantCreateApiView(APIView):
@@ -17,27 +22,50 @@ class RestaurantCreateApiView(APIView):
     This view allows authenticated users with super admin permissions to create a restaurant.
     ```
     {
-        "name": "Restaurant 1",
-        "description": "Restaurant description 1",
+        "name": "restaurant 28888",
+        "email": "restaurnat8@email.com",
+        "description": "test description",
         "opening_time": "10:30",
         "closing_time": "23:10",
-        "phone_number": "9696997890",
-        "address": "restaurant one address",
-        "restaurant_category_id": "1"
+        "phone_number": "7777777777",
+        "address": "test address",
+        "restaurant_category_id": 1,
+        "is_open_on_sunday": true,
+        "is_open_on_monday": true,
+        "is_open_on_tuesday": true,
+        "is_open_on_wednesday": false,
+        "is_open_on_thursday": false,
+        "is_open_on_friday": false,
+        "is_open_on_saturday": false
+        "logo":<image>
     }
+
     ```
     """
 
     permission_classes = [permissions.IsAuthenticated, IsSuperAdmin]
 
     @extend_schema(request=None, responses=RestaurantInputSerializer)
+    @transaction.atomic
     def post(self, request):
         restaurant_category_id = request.data.get("restaurant_category_id")
+        email = request.data.get("email")
+
         if not restaurant_category_id:
             return Response(
                 {"message": "restaurant category is required"},
                 status=status.HTTP_404_NOT_FOUND,
             )
+        try:
+            restaurant = get_object_or_404(Restaurant, email=email)
+            user = get_object_or_404(User, email=email)
+            if restaurant or user:
+                return Response(
+                    {"message": "Restaurant with this email already exists."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+        except Http404:
+            pass
         try:
             restaurant_category = get_object_or_404(Category, id=restaurant_category_id)
         except Http404:
@@ -48,8 +76,15 @@ class RestaurantCreateApiView(APIView):
         serializer = RestaurantInputSerializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
             new_restaurant = serializer.save(restaurant_category=restaurant_category)
+            user = User.objects.create(
+                email=request.data.get("email"),
+                first_name=request.data.get("name"),
+                role="restaurant",
+                restaurant=new_restaurant,
+            )
+            user.save()
             new_restaurant_output_serializer = RestaurantOutputSerializer(
-                new_restaurant
+                new_restaurant, context={"request": request}
             )
             response_data = {
                 "status": status.HTTP_201_CREATED,
@@ -67,12 +102,22 @@ class RestaurantUpdateApiView(APIView):
     This view allows authenticated users with super admin permissions to update the details of a restaurant.
     ```
     {
-        "name":"restaurant_name",
-        "description":"Restaurant description 1",
-        "opening_time":"1:30",
-        "closing_time":"16:10",
-        "phone_number":"9898989898",
-        "address":"restaurant one address"
+        "name": "restaurant 28888",
+        "email": "restaurnat8@email.com",
+        "description": "test description",
+        "opening_time": "10:30",
+        "closing_time": "23:10",
+        "phone_number": "7777777777",
+        "address": "test address",
+        "restaurant_category_id": 1,
+        "is_open_on_sunday": true,
+        "is_open_on_monday": true,
+        "is_open_on_tuesday": true,
+        "is_open_on_wednesday": false,
+        "is_open_on_thursday": false,
+        "is_open_on_friday": false,
+        "is_open_on_saturday": false
+        "logo":<image>
     }
     ```
     """
@@ -89,7 +134,9 @@ class RestaurantUpdateApiView(APIView):
         serializer = RestaurantInputSerializer(restaurant, data=request.data)
         if serializer.is_valid(raise_exception=True):
             updatd_restaurant = serializer.save()
-            updatd_restaurant_serializer = RestaurantOutputSerializer(updatd_restaurant)
+            updatd_restaurant_serializer = RestaurantOutputSerializer(
+                updatd_restaurant, context={"request": request}
+            )
             response_data = {
                 "status": status.HTTP_200_OK,
                 "error": False,
@@ -140,7 +187,9 @@ class RestaurantListApiView(APIView):
 
     def get(self, request):
         restaurants = Restaurant.objects.all()
-        restaurant_serializer = RestaurantOutputSerializer(restaurants, many=True)
+        restaurant_serializer = RestaurantOutputSerializer(
+            restaurants, many=True, context={"request": request}
+        )
         response_data = {
             "status": status.HTTP_200_OK,
             "error": False,

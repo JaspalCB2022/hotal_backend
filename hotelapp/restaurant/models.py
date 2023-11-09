@@ -10,6 +10,7 @@ class BaseModel(models.Model):
 
     class Meta:
         abstract = True
+        ordering = ["-created_at"]
 
 
 class Category(BaseModel):
@@ -26,7 +27,7 @@ class Category(BaseModel):
 
 class Restaurant(BaseModel):
     name = models.CharField(max_length=300)
-    description = models.CharField(max_length=500)
+    description = models.TextField()
     opening_time = models.TimeField()
     closing_time = models.TimeField()
     phone_number = models.CharField(max_length=20)
@@ -35,6 +36,17 @@ class Restaurant(BaseModel):
         Category,
         on_delete=models.CASCADE,
         related_name="restaurants",
+    )
+    is_open_on_sunday = models.BooleanField(default=False)
+    is_open_on_monday = models.BooleanField(default=False)
+    is_open_on_tuesday = models.BooleanField(default=False)
+    is_open_on_wednesday = models.BooleanField(default=False)
+    is_open_on_thursday = models.BooleanField(default=False)
+    is_open_on_friday = models.BooleanField(default=False)
+    is_open_on_saturday = models.BooleanField(default=False)
+    email = models.EmailField()
+    logo = models.ImageField(
+        upload_to="restaurants",
     )
 
     class Meta:
@@ -154,7 +166,7 @@ class Inventory(BaseModel):
         Restaurant, on_delete=models.CASCADE, related_name="inventories"
     )
     video_link = models.URLField(max_length=200)
-    item_image = models.URLField(max_length=200)
+    item_image = models.ImageField(max_length=200)
     description = models.CharField(max_length=200)
     menu_type = models.ForeignKey(
         MenuTypes, on_delete=models.CASCADE, related_name="menu_types"

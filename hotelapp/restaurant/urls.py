@@ -1,10 +1,11 @@
-from django.urls import path
+from django.urls import path, include
 from .views import (
     RestaurantCreateApiView,
     RestaurantUpdateApiView,
     RestaurantDeleteApiView,
     RestaurantListApiView,
 )
+from .Inventory.views import InventoryApiView
 
 urlpatterns = [
     path("create/", RestaurantCreateApiView.as_view(), name="create_restaurant"),
@@ -22,5 +23,8 @@ urlpatterns = [
         "list/",
         RestaurantListApiView.as_view(),
         name="delete_retaurant",
+    ),
+    path(
+        "inventory/", InventoryApiView.as_view(), name="restaurant_inventory_list_view"
     ),
 ]
