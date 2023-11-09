@@ -92,11 +92,7 @@ class MenuTypes(BaseModel):
         return self.name
     
 class Menu_Subtype(BaseModel):
-    CATEGORY = (
-        ("veg", "Veg"),
-        ("non-veg", "Non-Veg"),
-    )
-    categorytype = models.CharField(max_length=20 ,choices=CATEGORY, null=True,  default=None )
+    
     name = models.CharField(max_length=20)
     menutype = models.ForeignKey(MenuTypes, on_delete=models.CASCADE, related_name='menusubtypes')
 
@@ -127,6 +123,12 @@ class UnitCategory(models.Model):
         return self.name
     
 class Inventory(BaseModel):
+    CATEGORY = (
+        ("veg", "Veg"),
+        ("non-veg", "Non-Veg"),
+        ('other', 'Other')
+    )
+    
     name = models.CharField(max_length=20)
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name='inventories')
     video_link = models.URLField(max_length=200)
@@ -134,6 +136,7 @@ class Inventory(BaseModel):
     description = models.CharField(max_length=200)
     menu_type = models.ForeignKey(MenuTypes, on_delete=models.CASCADE, related_name='menu_types')
     menu_subtype = models.ForeignKey(Menu_Subtype, on_delete=models.CASCADE, related_name='menu_subtypes')
+    categorytype = models.CharField(max_length=20 ,choices=CATEGORY, null=True,  default=None )
     total_quantity = models.PositiveIntegerField()
     available_quantity = models.PositiveIntegerField()
     unit_price = models.PositiveIntegerField()
