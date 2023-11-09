@@ -12,6 +12,10 @@ class InventoryInputSerializer(serializers.Serializer):
 
 
 class InventoryOutputSerializer(serializers.ModelSerializer):
+    unit_category = serializers.StringRelatedField()
+    menu_subtype = serializers.StringRelatedField()
+    menu_type = serializers.StringRelatedField()
+
     class Meta:
         model = Inventory
         fields = "__all__"

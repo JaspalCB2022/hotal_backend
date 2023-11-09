@@ -9,7 +9,7 @@ from restaurant.models import Restaurant, Category, Inventory
 from restaurant.permissions import IsSuperAdmin
 
 
-class InventoryApiView(APIView):
+class InventoryListApiView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
