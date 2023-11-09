@@ -1,52 +1,21 @@
 from rest_framework import serializers
-from restaurant.models import Restaurant
+from restaurant.models import Inventory
 
 
-class RestaurantInputSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=300)
-    description = serializers.CharField(max_length=500)
-    opening_time = serializers.TimeField()
-    closing_time = serializers.TimeField()
-    phone_number = serializers.CharField(max_length=20)
-    address = serializers.CharField()
-
-    def validate(self, data):
-        opening_time = data.get("opening_time")
-        closing_time = data.get("closing_time")
-        if opening_time and closing_time:
-            if opening_time >= closing_time:
-                raise serializers.ValidationError(
-                    "Closing time should be after opening time."
-                )
-        return data
-
-    def create(self, validated_data):
-        return Restaurant.objects.create(**validated_data)
-
-    def update(self, instance, validated_data):
-        instance.name = validated_data.get("name", instance.name)
-        instance.description = validated_data.get("description", instance.description)
-        instance.opening_time = validated_data.get(
-            "opening_time", instance.opening_time
-        )
-        instance.closing_time = validated_data.get(
-            "closing_time", instance.closing_time
-        )
-        instance.phone_number = validated_data.get(
-            "phone_number", instance.phone_number
-        )
-        instance.address = validated_data.get("address", instance.address)
-        instance.save()
-        return instance
+class InventoryInputSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=20)
+    item_image = serializers.ImageField()
+    description = serializers.CharField()
+    total_quantity = serializers.IntegerField()
+    available_quantity = serializers.IntegerField()
+    unit_price = serializers.DecimalField(decimal_places=2, max_digits=5)
 
 
-class RestaurantOutputSerializer(serializers.ModelSerializer):
-    restaurant_category = serializers.StringRelatedField(read_only=True)
-    operating_hours = serializers.SerializerMethodField()
+class InventoryOutputSerializer(serializers.ModelSerializer):
+    unit_category = serializers.StringRelatedField()
+    menu_subtype = serializers.StringRelatedField()
+    menu_type = serializers.StringRelatedField()
 
     class Meta:
-        model = Restaurant
+        model = Inventory
         fields = "__all__"
-
-    def get_operating_hours(self, obj):
-        return obj.get_operating_hours()

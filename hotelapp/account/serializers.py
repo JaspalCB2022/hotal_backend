@@ -3,12 +3,13 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from restaurant.serializers import RestaurantOutputSerializer 
+from restaurant.serializers import RestaurantOutputSerializer
+
 
 class UserSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(default="DefaultFirstName")
     last_name = serializers.CharField(default="DefaultFirstName")
-    
+
     phone_number = serializers.CharField(required=True)
     password = serializers.CharField(max_length=60, min_length=8, write_only=True)
     restaurant = RestaurantOutputSerializer(many=False, required=False)
@@ -27,7 +28,7 @@ class UserSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "password",
-            'restaurant',
+            "restaurant",
         ]
         read_only_fields = [
             "is_active",
@@ -35,7 +36,6 @@ class UserSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-
 
     def validate_password(self, value):
         valid_password(value)
@@ -80,13 +80,12 @@ class UserSerializer(serializers.ModelSerializer):
             )
         return value
 
-    
 
 class UserRegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(max_length=60, min_length=6, write_only=True)
-    confirm_password = serializers.CharField(
-        max_length=60, min_length=6, write_only=True
-    )
+    # password = serializers.CharField(max_length=60, min_length=6, write_only=True)
+    # confirm_password = serializers.CharField(
+    #     max_length=60, min_length=6, write_only=True
+    # )
 
     class Meta:
         model = get_user_model()
@@ -98,10 +97,6 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             "phone_number",
             "is_active",
             "role",
-            "password",
-            "confirm_password",
-            "created_at",
-            "updated_at",
         ]
         read_only_fields = [
             "is_active",
@@ -132,7 +127,6 @@ class PasswordResetSerializer(serializers.Serializer):
 
 class ForgotPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
-
 
 
 class ChangePasswordSerializer(serializers.Serializer):
@@ -186,14 +180,13 @@ class ChangePasswordSerializer(serializers.Serializer):
         return data
 
 
-
-
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     """
     Custom token serializer for obtaining JWT tokens with additional user role information.
     """
+
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-        token['role'] = user.role
+        token["role"] = user.role
         return token

@@ -1,5 +1,15 @@
 from django.contrib import admin
-from .models import Restaurant,Category,Table, TableQR, MenuTypes, Menu_Subtype, UnitCategory, Inventory
+from .models import (
+    Restaurant,
+    Category,
+    Table,
+    TableQR,
+    MenuTypes,
+    Menu_Subtype,
+    UnitCategory,
+    Inventory,
+)
+
 # Register your models here.
 
 admin.site.register(Restaurant)
