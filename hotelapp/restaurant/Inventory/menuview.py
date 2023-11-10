@@ -19,7 +19,7 @@ class MenuTypeListApiView(APIView):
         Return a list of all users.
         """ 
         try:
-            print("Request>>>", self.request.user.restaurant.id)
+            #print("Request>>>", self.request.user.restaurant.id)
             menu_type_objects = MenuTypes.objects.filter(restaurant=self.request.user.restaurant.id)
             menu_type_data = [MenuTypeSerializer(menu_type).data for menu_type in menu_type_objects]    
             

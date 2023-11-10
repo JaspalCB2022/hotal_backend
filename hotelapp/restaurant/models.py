@@ -170,9 +170,12 @@ class Inventory(BaseModel):
     )
     total_quantity = models.PositiveIntegerField()
     available_quantity = models.PositiveIntegerField()
-    unit_price = models.PositiveIntegerField()
+    unit_price = models.DecimalField(max_digits=5, decimal_places=2)
     unit_category = models.ForeignKey(
         UnitCategory, on_delete=models.CASCADE, related_name="unit_categories"
+    )
+    categorytype = models.CharField(
+        max_length=20, choices=CATEGORY, null=True, default=None
     )
 
     class Meta:
