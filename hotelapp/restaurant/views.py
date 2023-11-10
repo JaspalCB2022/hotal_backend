@@ -92,7 +92,7 @@ class RestaurantCreateApiView(APIView):
                 "detail": new_restaurant_output_serializer.data,
                 "message": "",
             }
-            return Response(response_data)
+            return Response(response_data, status=status.HTTP_201_CREATED)
 
 
 class RestaurantUpdateApiView(APIView):
@@ -124,6 +124,7 @@ class RestaurantUpdateApiView(APIView):
 
     permission_classes = [permissions.IsAuthenticated, IsSuperAdmin]
 
+    @transaction.atomic
     def put(self, request, restaurant_id):
         try:
             restaurant = Restaurant.objects.get(pk=restaurant_id)
@@ -134,6 +135,10 @@ class RestaurantUpdateApiView(APIView):
         serializer = RestaurantInputSerializer(restaurant, data=request.data)
         if serializer.is_valid(raise_exception=True):
             updatd_restaurant = serializer.save()
+            user = User.objects.get(restaurant=updatd_restaurant)
+            user.first_name = updatd_restaurant.name
+            user.email = updatd_restaurant.email
+            user.save()
             updatd_restaurant_serializer = RestaurantOutputSerializer(
                 updatd_restaurant, context={"request": request}
             )
@@ -143,7 +148,7 @@ class RestaurantUpdateApiView(APIView):
                 "detail": updatd_restaurant_serializer.data,
                 "message": "",
             }
-            return Response(response_data)
+            return Response(response_data, status=status.HTTP_200_OK)
 
 
 class RestaurantDeleteApiView(APIView):
@@ -154,7 +159,7 @@ class RestaurantDeleteApiView(APIView):
 
     permission_classes = [permissions.IsAuthenticated, IsSuperAdmin]
 
-    def delete(self, request, restaurant_id, format=None):
+    def delete(self, request, restaurant_id):
         try:
             restaurant = Restaurant.objects.get(pk=restaurant_id)
         except Restaurant.DoesNotExist:
@@ -164,7 +169,7 @@ class RestaurantDeleteApiView(APIView):
                 "detail": {},
                 "message": "Restaurant not found",
             }
-            return Response(response_data)
+            return Response(response_data, status=status.HTTP_404_NOT_FOUND)
 
         restaurant.delete()
         return Response(
@@ -173,7 +178,8 @@ class RestaurantDeleteApiView(APIView):
                 "error": False,
                 "detail": {},
                 "message": "Restaurant Deleted Successfully",
-            }
+            },
+            status=status.HTTP_200_OK,
         )
 
 
@@ -196,4 +202,76 @@ class RestaurantListApiView(APIView):
             "detail": restaurant_serializer.data,
             "message": "",
         }
-        return Response(response_data)
+        return Response(response_data, status=status.HTTP_200_OK)
+
+
+class RestaurantDetailApiView(APIView):
+
+    """
+    Api view to get detail of restaurant by id.
+    """
+
+    permission_classes = [permissions.IsAuthenticated, IsSuperAdmin]
+
+    def get(self, request, restaurant_id):
+        try:
+            restaurant = get_object_or_404(Restaurant, id=restaurant_id)
+        except Http404:
+            return Response(
+                {"message": "restaurant not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        restaurant_output_serializer = RestaurantOutputSerializer(
+            restaurant, context={"request": request}
+        )
+        response_data = {
+            "status": status.HTTP_200_OK,
+            "error": False,
+            "detail": restaurant_output_serializer.data,
+            "message": "",
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
+
+
+class RestaurantUpdateOwnProfile(APIView):
+    """
+    Api for restaurnt to update their profile.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    @transaction.atomic
+    def put(self, request):
+        restaurant = request.user.restaurant
+        del request.data["email"]
+        try:
+            restaurant = Restaurant.objects.get(pk=restaurant.id)
+        except Restaurant.DoesNotExist:
+            return Response(
+                {"error": "Restaurant not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+        serializer = RestaurantInputSerializer(restaurant, data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            updatd_restaurant = serializer.save()
+            user = User.objects.get(restaurant=updatd_restaurant)
+            user.first_name = updatd_restaurant.name
+            user.email = updatd_restaurant.email
+            user.save()
+            updatd_restaurant_serializer = RestaurantOutputSerializer(
+                updatd_restaurant, context={"request": request}
+            )
+            response_data = {
+                "status": status.HTTP_200_OK,
+                "error": False,
+                "detail": updatd_restaurant_serializer.data,
+                "message": "",
+            }
+            return Response(response_data, status=status.HTTP_200_OK)
+
+        response_data = {
+            "status": status.HTTP_200_OK,
+            "error": False,
+            "detail": "",
+            "message": "",
+        }
+        return Response(response_data, status=status.HTTP_200_OK)

@@ -5,6 +5,7 @@ from restaurant.models import Inventory
 class InventoryInputSerializer(serializers.Serializer):
     CATEGORY = (("veg", "Veg"), ("non-veg", "Non-Veg"), ("other", "Other"))
     name = serializers.CharField(max_length=20)
+    video_link = serializers.URLField()
     item_image = serializers.ImageField()
     description = serializers.CharField()
     total_quantity = serializers.IntegerField()
@@ -14,6 +15,23 @@ class InventoryInputSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         return Inventory.objects.create(**validated_data)
+
+    def update(self, instance, validated_data):
+        instance.name = validated_data.get("name", instance.name)
+        instance.description = validated_data.get("description", instance.description)
+        instance.item_image = validated_data.get("item_image", instance.item_image)
+        instance.total_quantity = validated_data.get(
+            "total_quantity", instance.total_quantity
+        )
+        instance.available_quantity = validated_data.get(
+            "available_quantity", instance.available_quantity
+        )
+        instance.unit_price = validated_data.get("unit_price", instance.unit_price)
+        instance.categorytype = validated_data.get(
+            "categorytype", instance.categorytype
+        )
+        instance.save()
+        return instance
 
 
 class InventoryOutputSerializer(serializers.ModelSerializer):

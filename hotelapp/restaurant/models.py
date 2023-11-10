@@ -79,7 +79,7 @@ class Table(BaseModel):
         verbose_name_plural = "Table"
 
     def __str__(self):
-        return self.tablenumber
+        return f"{self.restaurant.name} - {self.tablenumber}"
 
 
 class TableQR(BaseModel):
