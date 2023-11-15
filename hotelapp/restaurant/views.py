@@ -14,6 +14,71 @@ from django.db import transaction
 
 User = get_user_model()
 
+class TableListApiView(APIView):
+    """
+    API view for retrieving a list of restaurants.
+    This view allows authenticated users with super admin permissions to retrieve a list of restaurants.
+    """
+
+    permission_classes = [permissions.IsAuthenticated, IsSuperadminOrRestaurantOwner]
+
+    def get(self, request):
+        restaurantid = request.user.restaurant.id
+        tables = Table.objects.filter(restaurant = restaurantid)
+        restaurant_serializer = TableOutputSerializer(
+            tables, many=True, context={"request": request}
+        )
+        response_data = {
+            "status": status.HTTP_200_OK,
+            "error": False,
+            "detail": restaurant_serializer.data,
+            "message": "",
+        }
+        return Response(response_data)
+class TableCreateApiView(APIView):
+    """
+    API view for updating a restaurant's details.
+
+    This view allows authenticated users with super admin, or restaurant owner  permissions to create a Table.
+    ```
+    {
+        "table_number": 3,
+        "capacity": 5,
+        "is_occupied" : false
+    }
+
+    ```
+    """
+
+    permission_classes = [permissions.IsAuthenticated, IsSuperadminOrRestaurantOwner]
+
+    @extend_schema(request=None, responses=TableInputSerializer)
+    @transaction.atomic
+    def post(self, request):
+        #print("request.data >>>", request.data)
+        tablenumber = request.data.get("tablenumber")
+        capacity = request.data.get("capacity")
+        is_occupied = request.data.get("is_occupied")
+        restaurant = request.user.restaurant
+        #print("restaurant >>>", restaurant)
+        serializer = TableInputSerializer(data=request.data)
+        
+        if serializer.is_valid(raise_exception=True):
+            #serializer.save()
+            new_inventory = serializer.save(
+                tablenumber=int(tablenumber),
+                capacity=int(capacity),
+                is_occupied=bool(is_occupied),
+                restaurant=restaurant,
+            )
+            new_inventory.save()
+            return Response({'message': 'table created successfully.', 'detail': [], 'error': False, 'status': status.HTTP_200_OK}, status=status.HTTP_200_OK)
+        else:
+            return Response(
+                {"message": "Validation Error", 'detail': serializer.errors, 'error': True, 'status': status.HTTP_400_BAD_REQUEST},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+   
 
 class RestaurantCreateApiView(APIView):
     """
