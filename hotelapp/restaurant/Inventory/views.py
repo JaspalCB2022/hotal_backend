@@ -21,15 +21,26 @@ class InventoryListApiView(APIView):
 
     def get(self, request):
         restaurant_id = request.user.restaurant
-        try:
-            inventory = get_object_or_404(Inventory, restaurant=restaurant_id.id)
-        except Http404:
+        menu_type = request.query_params.get("menu_type")
+        subtype = request.query_params.get("subtype")
+
+        filters = {"restaurant": restaurant_id.id}
+
+        if menu_type:
+            filters["menu_type__name"] = menu_type
+
+        if subtype:
+            filters["menu_subtype__name"] = subtype
+
+        inventory = Inventory.objects.filter(**filters)
+
+        if not inventory.exists():
             return Response(
-                {"message": "inventory not found"},
+                {"message": "Inventory not found"},
                 status=status.HTTP_404_NOT_FOUND,
             )
         inventory_output_serializer = InventoryOutputSerializer(
-            inventory, context={"request": request}
+            inventory, context={"request": request}, many=True
         )
         response_data = {
             "status": status.HTTP_200_OK,
@@ -37,7 +48,7 @@ class InventoryListApiView(APIView):
             "detail": inventory_output_serializer.data,
             "message": "",
         }
-        return Response(response_data)
+        return Response(response_data, status=status.HTTP_200_OK)
 
 
 class InventoryCreateApiView(APIView):
@@ -92,8 +103,140 @@ class InventoryCreateApiView(APIView):
             "detail": inventory_output_serializer.data,
             "message": "",
         }
-        return Response(response_data)
+        return Response(response_data, status=status.HTTP_200_OK)
 
 
-class InventoryDeleteApi(APIView):
-    pass
+class InventoryDeleteApiView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsRestaurant]
+
+    def delete(self, request, inventory_Id):
+        restaurant = request.user.restaurant
+
+        try:
+            inventory = get_object_or_404(Inventory, id=inventory_Id)
+        except Http404:
+            return Response(
+                {"message": "inventory not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        if restaurant.id != inventory.restaurant.id:
+            response_data = {
+                "status": status.HTTP_401_UNAUTHORIZED,
+                "error": False,
+                "detail": "",
+                "message": "you are not authorized to perform this action.",
+            }
+            return Response(response_data, status=status.HTTP_401_UNAUTHORIZED)
+
+        if inventory:
+            inventory.delete()
+            response_data = {
+                "status": status.HTTP_200_OK,
+                "error": False,
+                "detail": "",
+                "message": "inventory deleted successfully.",
+            }
+            return Response(response_data, status=status.HTTP_200_OK)
+
+
+class RestaurantInventoryListApiView(APIView):
+    """
+    Api to list inventory of a restaurant by restaurant_id.
+    """
+
+    def get(self, request, restaurant_id, table_id):
+        restaurant_id = restaurant_id
+        table_id = table_id
+        menu_type = request.query_params.get("menu_type")
+        subtype = request.query_params.get("subtype")
+
+        filters = {"restaurant": restaurant_id}
+
+        if menu_type:
+            filters["menu_type__name"] = menu_type
+
+        if subtype:
+            filters["menu_subtype__name"] = subtype
+
+        inventory = Inventory.objects.filter(**filters)
+
+        if not inventory.exists():
+            return Response(
+                {"message": "Inventory not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        inventory_output_serializer = InventoryOutputSerializer(
+            inventory, context={"request": request}, many=True
+        )
+        response_data = {
+            "status": status.HTTP_200_OK,
+            "error": False,
+            "detail": inventory_output_serializer.data,
+            "message": "",
+            "table_id": table_id,
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
+
+
+class InventoryUpdateApiView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsRestaurant]
+
+    def put(self, request, inventory_id):
+        restaurant = request.user.restaurant
+        try:
+            inventory = get_object_or_404(Inventory, id=inventory_id)
+        except Http404:
+            return Response(
+                {"message": "inventory not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        if restaurant.id != inventory.restaurant.id:
+            response_data = {
+                "status": status.HTTP_401_UNAUTHORIZED,
+                "error": False,
+                "detail": "",
+                "message": "you are not authorized to perform this action.",
+            }
+            return Response(response_data, status=status.HTTP_401_UNAUTHORIZED)
+        inventory_input_serializer = InventoryInputSerializer(
+            inventory, data=request.data
+        )
+        if inventory_input_serializer.is_valid(raise_exception=True):
+            updated_inventory = inventory_input_serializer.save()
+            updated_restaurant_serializer = InventoryOutputSerializer(
+                updated_inventory, context={"request": request}
+            )
+            response_data = {
+                "status": status.HTTP_200_OK,
+                "error": False,
+                "detail": updated_restaurant_serializer.data,
+                "message": "",
+            }
+            return Response(response_data, status=status.HTTP_200_OK)
+
+
+class InventoryDetailApiView(APIView):
+
+    """
+    Api view to get detail of inventory by id.
+    """
+
+    permission_classes = []
+
+    def get(self, request, inventory_id):
+        try:
+            inventory = get_object_or_404(Inventory, id=inventory_id)
+        except Http404:
+            return Response(
+                {"message": "inventory not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        inventory_output_serializer = InventoryOutputSerializer(inventory)
+        response_data = {
+            "status": status.HTTP_200_OK,
+            "error": False,
+            "detail": inventory_output_serializer.data,
+            "message": "",
+        }
+        return Response(response_data, status=status.HTTP_200_OK)

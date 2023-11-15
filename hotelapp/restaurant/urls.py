@@ -5,16 +5,27 @@ from .views import (
     RestaurantDeleteApiView,
     RestaurantListApiView,
     TableCreateApiView,
-    TableListApiView
+    TableListApiView,
+    RestaurantDetailApiView,
+    RestaurantUpdateOwnProfile,
 )
 
 
 urlpatterns = [
-    path("create/", RestaurantCreateApiView.as_view(), name="create_restaurant"),
+    path(
+        "create/",
+        RestaurantCreateApiView.as_view(),
+        name="create_restaurant",
+    ),
     path(
         "update/<int:restaurant_id>/",
         RestaurantUpdateApiView.as_view(),
         name="update_restaurant",
+    ),
+    path(
+        "update/own/profile/",
+        RestaurantUpdateOwnProfile.as_view(),
+        name="update_own_profile",
     ),
     path(
         "delete/<int:restaurant_id>/",
@@ -25,6 +36,11 @@ urlpatterns = [
         "list/",
         RestaurantListApiView.as_view(),
         name="delete_retaurant",
+    ),
+    path(
+        "detail/<int:restaurant_id>/",
+        RestaurantDetailApiView.as_view(),
+        name="restaurant_detail_view",
     ),
     path("inventory/", include("restaurant.Inventory.urls")),
     path("createtable/", TableCreateApiView.as_view(), name="create_table"),

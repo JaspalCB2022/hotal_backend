@@ -82,7 +82,6 @@ class Table(BaseModel):
         return f"{self.restaurant.name} - {self.tablenumber}"
 
 
-
 class TableQR(BaseModel):
     table = models.ForeignKey(Table, on_delete=models.CASCADE, related_name="table")
     qrlink = models.ImageField(

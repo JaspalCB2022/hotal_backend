@@ -92,7 +92,7 @@ class RestaurantCreateApiView(APIView):
                 "detail": new_restaurant_output_serializer.data,
                 "message": "",
             }
-            return Response(response_data)
+            return Response(response_data, status=status.HTTP_201_CREATED)
 
 
 class RestaurantUpdateApiView(APIView):
@@ -124,6 +124,7 @@ class RestaurantUpdateApiView(APIView):
 
     permission_classes = [permissions.IsAuthenticated, IsSuperadminOrRestaurantOwner]
 
+    @transaction.atomic
     def put(self, request, restaurant_id):
         try:
             restaurant = Restaurant.objects.get(pk=restaurant_id)
@@ -134,6 +135,10 @@ class RestaurantUpdateApiView(APIView):
         serializer = RestaurantInputSerializer(restaurant, data=request.data)
         if serializer.is_valid(raise_exception=True):
             updatd_restaurant = serializer.save()
+            user = User.objects.get(restaurant=updatd_restaurant)
+            user.first_name = updatd_restaurant.name
+            user.email = updatd_restaurant.email
+            user.save()
             updatd_restaurant_serializer = RestaurantOutputSerializer(
                 updatd_restaurant, context={"request": request}
             )
@@ -143,7 +148,7 @@ class RestaurantUpdateApiView(APIView):
                 "detail": updatd_restaurant_serializer.data,
                 "message": "",
             }
-            return Response(response_data)
+            return Response(response_data, status=status.HTTP_200_OK)
 
 
 class RestaurantDeleteApiView(APIView):
@@ -154,7 +159,7 @@ class RestaurantDeleteApiView(APIView):
 
     permission_classes = [permissions.IsAuthenticated, IsSuperAdmin]
 
-    def delete(self, request, restaurant_id, format=None):
+    def delete(self, request, restaurant_id):
         try:
             restaurant = Restaurant.objects.get(pk=restaurant_id)
         except Restaurant.DoesNotExist:
@@ -164,7 +169,7 @@ class RestaurantDeleteApiView(APIView):
                 "detail": {},
                 "message": "Restaurant not found",
             }
-            return Response(response_data)
+            return Response(response_data, status=status.HTTP_404_NOT_FOUND)
 
         restaurant.delete()
         return Response(
@@ -173,7 +178,8 @@ class RestaurantDeleteApiView(APIView):
                 "error": False,
                 "detail": {},
                 "message": "Restaurant Deleted Successfully",
-            }
+            },
+            status=status.HTTP_200_OK,
         )
 
 
@@ -196,141 +202,76 @@ class RestaurantListApiView(APIView):
             "detail": restaurant_serializer.data,
             "message": "",
         }
-        return Response(response_data)
+        return Response(response_data, status=status.HTTP_200_OK)
 
 
-class TableListApiView(APIView):
+class RestaurantDetailApiView(APIView):
+
     """
-    API view for retrieving a list of restaurants.
-    This view allows authenticated users with super admin permissions to retrieve a list of restaurants.
+    Api view to get detail of restaurant by id.
     """
 
-    permission_classes = [permissions.IsAuthenticated, IsSuperadminOrRestaurantOwner]
+    permission_classes = [permissions.IsAuthenticated, IsSuperAdmin]
 
-    def get(self, request):
-        restaurantid = request.user.restaurant.id
-        tables = Table.objects.filter(restaurant = restaurantid)
-        restaurant_serializer = TableOutputSerializer(
-            tables, many=True, context={"request": request}
+    def get(self, request, restaurant_id):
+        try:
+            restaurant = get_object_or_404(Restaurant, id=restaurant_id)
+        except Http404:
+            return Response(
+                {"message": "restaurant not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        restaurant_output_serializer = RestaurantOutputSerializer(
+            restaurant, context={"request": request}
         )
         response_data = {
             "status": status.HTTP_200_OK,
             "error": False,
-            "detail": restaurant_serializer.data,
+            "detail": restaurant_output_serializer.data,
             "message": "",
         }
-        return Response(response_data)
-class TableCreateApiView(APIView):
+        return Response(response_data, status=status.HTTP_200_OK)
+
+
+class RestaurantUpdateOwnProfile(APIView):
     """
-    API view for updating a restaurant's details.
-
-    This view allows authenticated users with super admin, or restaurant owner  permissions to create a Table.
-    ```
-    {
-        "table_number": 3,
-        "capacity": 5,
-        "is_occupied" : false
-    }
-
-    ```
+    Api for restaurnt to update their profile.
     """
 
-    permission_classes = [permissions.IsAuthenticated, IsSuperadminOrRestaurantOwner]
+    permission_classes = [permissions.IsAuthenticated]
 
-    @extend_schema(request=None, responses=TableInputSerializer)
     @transaction.atomic
-    def post(self, request):
-        #print("request.data >>>", request.data)
-        tablenumber = request.data.get("tablenumber")
-        capacity = request.data.get("capacity")
-        is_occupied = request.data.get("is_occupied")
+    def put(self, request):
         restaurant = request.user.restaurant
-        #print("restaurant >>>", restaurant)
-        serializer = TableInputSerializer(data=request.data)
-        
-        if serializer.is_valid(raise_exception=True):
-            #serializer.save()
-            new_inventory = serializer.save(
-                tablenumber=int(tablenumber),
-                capacity=int(capacity),
-                is_occupied=bool(is_occupied),
-                restaurant=restaurant,
-            )
-            new_inventory.save()
-            return Response({'message': 'table created successfully.', 'detail': [], 'error': False, 'status': status.HTTP_200_OK}, status=status.HTTP_200_OK)
-        else:
+        del request.data["email"]
+        try:
+            restaurant = Restaurant.objects.get(pk=restaurant.id)
+        except Restaurant.DoesNotExist:
             return Response(
-                {"message": "Validation Error", 'detail': serializer.errors, 'error': True, 'status': status.HTTP_400_BAD_REQUEST},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "Restaurant not found"}, status=status.HTTP_404_NOT_FOUND
             )
-    # def post(self, request):
-    #     print("save Data >>", request.data)
-    #     table_number = request.data.get("table_number")
-    #     capacity = request.data.get("capacity")
-    #     is_occupied = request.data.get("is_occupied")
-    #     restaurant = request.user.restaurant
+        serializer = RestaurantInputSerializer(restaurant, data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            updatd_restaurant = serializer.save()
+            user = User.objects.get(restaurant=updatd_restaurant)
+            user.first_name = updatd_restaurant.name
+            user.email = updatd_restaurant.email
+            user.save()
+            updatd_restaurant_serializer = RestaurantOutputSerializer(
+                updatd_restaurant, context={"request": request}
+            )
+            response_data = {
+                "status": status.HTTP_200_OK,
+                "error": False,
+                "detail": updatd_restaurant_serializer.data,
+                "message": "",
+            }
+            return Response(response_data, status=status.HTTP_200_OK)
 
-    #     if not table_number :
-    #         return Response(
-    #             {"message": "Table Number is required",'detail':[], 'error': False, 'status': status.HTTP_404_NOT_FOUND},
-    #             status=status.HTTP_404_NOT_FOUND,
-    #         )
-    #     if not capacity:
-    #         return Response(
-    #             {"message": "Table Capacity is required", 'detail':[], 'error': False, 'status': status.HTTP_404_NOT_FOUND},
-    #             status=status.HTTP_404_NOT_FOUND,
-    #         )
-
-    #     if not is_occupied:
-    #         return Response(
-    #             {"message": "Table Capacity is required", 'detail':[], 'error': False, 'status': status.HTTP_404_NOT_FOUND},
-    #             status=status.HTTP_404_NOT_FOUND,
-    #         )
-        
-
-    #     return Response({'message':'', 'detail':[], 'error':False}, status=status.HTTP_200_OK)
-        # restaurant_category_id = request.data.get("restaurant_category_id")
-        # email = request.data.get("email")
-
-        # if not restaurant_category_id:
-        #     return Response(
-        #         {"message": "restaurant category is required"},
-        #         status=status.HTTP_404_NOT_FOUND,
-        #     )
-        # try:
-        #     restaurant = get_object_or_404(Restaurant, email=email)
-        #     user = get_object_or_404(User, email=email)
-        #     if restaurant or user:
-        #         return Response(
-        #             {"message": "Restaurant with this email already exists."},
-        #             status=status.HTTP_404_NOT_FOUND,
-        #         )
-        # except Http404:
-        #     pass
-        # try:
-        #     restaurant_category = get_object_or_404(Category, id=restaurant_category_id)
-        # except Http404:
-        #     return Response(
-        #         {"message": "restaurant category not found"},
-        #         status=status.HTTP_404_NOT_FOUND,
-        #     )
-        # serializer = TableInputSerializer(data=request.data)
-        # if serializer.is_valid(raise_exception=True):
-        #     new_restaurant = serializer.save(restaurant_category=restaurant_category)
-        #     user = User.objects.create(
-        #         email=request.data.get("email"),
-        #         first_name=request.data.get("name"),
-        #         role="restaurant",
-        #         restaurant=new_restaurant,
-        #     )
-        #     user.save()
-        #     new_restaurant_output_serializer = RestaurantOutputSerializer(
-        #         new_restaurant, context={"request": request}
-        #     )
-        #     response_data = {
-        #         "status": status.HTTP_201_CREATED,
-        #         "error": False,
-        #         "detail": new_restaurant_output_serializer.data,
-        #         "message": "",
-        #     }
-        #     return Response(response_data)
+        response_data = {
+            "status": status.HTTP_200_OK,
+            "error": False,
+            "detail": "",
+            "message": "",
+        }
+        return Response(response_data, status=status.HTTP_200_OK)

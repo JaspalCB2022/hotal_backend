@@ -72,6 +72,7 @@ class RestaurantInputSerializer(serializers.Serializer):
             "phone_number", instance.phone_number
         )
         instance.address = validated_data.get("address", instance.address)
+        instance.email = validated_data.get("email", instance.email)
         days_data = {
             "is_open_on_sunday",
             "is_open_on_monday",
