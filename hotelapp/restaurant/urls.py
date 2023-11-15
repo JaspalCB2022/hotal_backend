@@ -4,6 +4,8 @@ from .views import (
     RestaurantUpdateApiView,
     RestaurantDeleteApiView,
     RestaurantListApiView,
+    TableCreateApiView,
+    TableListApiView
 )
 
 
@@ -25,4 +27,6 @@ urlpatterns = [
         name="delete_retaurant",
     ),
     path("inventory/", include("restaurant.Inventory.urls")),
+    path("createtable/", TableCreateApiView.as_view(), name="create_table"),
+    path("tables/", TableListApiView.as_view(), name="tables_list")
 ]
