@@ -1,3 +1,5 @@
+import os
+from datetime import timedelta, datetime
 from django.shortcuts import get_object_or_404
 from django.http import Http404
 from rest_framework.views import APIView
@@ -13,6 +15,54 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 
 User = get_user_model()
+
+# views.py
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from .models import Table
+import qrcode
+
+class TableQRCodeView(APIView):
+    def get(self, request, table_id):
+        try:
+            table = Table.objects.get(id=table_id)
+        except Table.DoesNotExist:
+            return Response({"error": "Table not found"}, status=404)
+
+
+        # Serialize the table data
+        serializer = TableOutputSerializer(table)
+        serialized_data = serializer.data
+
+        # Generate QR code
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(str(serialized_data))  # Convert to string
+        qr.make(fit=True)
+
+        # Create an image from the QR Code instance
+        qr_img = qr.make_image(fill_color="black", back_color="white")
+
+        # Create a dynamic directory path based on the current date
+        current_date = datetime.now().strftime('%Y/%m/%d')
+        dynamic_path = f"media/table_qrcodes/{current_date}/"
+
+        # Create the directory if it doesn't exist
+        os.makedirs(dynamic_path, exist_ok=True)
+
+        # Save the image with a dynamic path
+        img_path = f"{dynamic_path}table_{table.id}_qr.png"
+        qr_img.save(img_path)
+
+        # Update the Table model with the QR code path
+        # table.qr_code_path = img_path
+        # table.save()
+
+        return Response({"qr_code_image": img_path})
 
 class TableListApiView(APIView):
     """

@@ -96,7 +96,7 @@ class TableQR(BaseModel):
         verbose_name_plural = "Table QR"
 
     def __str__(self):
-        return self.tablenumber
+        return self.qrlink
 
 
 class MenuTypes(BaseModel):

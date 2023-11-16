@@ -8,6 +8,7 @@ from .views import (
     TableListApiView,
     RestaurantDetailApiView,
     RestaurantUpdateOwnProfile,
+    TableQRCodeView
 )
 
 
@@ -44,5 +45,7 @@ urlpatterns = [
     ),
     path("inventory/", include("restaurant.Inventory.urls")),
     path("createtable/", TableCreateApiView.as_view(), name="create_table"),
-    path("tables/", TableListApiView.as_view(), name="tables_list")
+    path("tables/", TableListApiView.as_view(), name="tables_list"),
+    path('table/<int:table_id>/qr-code/', TableQRCodeView.as_view(), name='table-qr-code'),
+
 ]
