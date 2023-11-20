@@ -11,7 +11,7 @@ class InventoryInputSerializer(serializers.Serializer):
     total_quantity = serializers.IntegerField()
     available_quantity = serializers.IntegerField()
     unit_price = serializers.DecimalField(decimal_places=2, max_digits=5)
-    categorytype = serializers.ChoiceField(choices=CATEGORY)
+    item_categorytype = serializers.ChoiceField(choices=CATEGORY)
 
     def create(self, validated_data):
         return Inventory.objects.create(**validated_data)
@@ -27,8 +27,8 @@ class InventoryInputSerializer(serializers.Serializer):
             "available_quantity", instance.available_quantity
         )
         instance.unit_price = validated_data.get("unit_price", instance.unit_price)
-        instance.categorytype = validated_data.get(
-            "categorytype", instance.categorytype
+        instance.item_categorytype = validated_data.get(
+            "item_categorytype", instance.item_categorytype
         )
         instance.save()
         return instance

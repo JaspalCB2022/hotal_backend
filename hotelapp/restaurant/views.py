@@ -1,6 +1,6 @@
 import os
 from datetime import timedelta, datetime
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, get_list_or_404
 from django.http import Http404
 from rest_framework.views import APIView
 from rest_framework import status
@@ -8,11 +8,14 @@ from rest_framework.response import Response
 from rest_framework import authentication, permissions
 from drf_spectacular.utils import extend_schema
 from .serializers import RestaurantInputSerializer, RestaurantOutputSerializer, TableInputSerializer, TableOutputSerializer
-from .models import Restaurant, Category, Table, TableQR
+from .models import Restaurant, Category, Table
 from .permissions import IsSuperAdmin, IsRestaurant, IsSuperadminOrRestaurantOwner
 from account.serializers import UserRegisterSerializer
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from io import BytesIO
+from django.core.files.base import ContentFile
+
 
 User = get_user_model()
 
@@ -21,48 +24,69 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from .models import Table
 import qrcode
+from django.db.models import Q
+from django.core.serializers import serialize
 
+class TableQRList(APIView):
+    
+    """
+    API view for retrieving a list of restaurants.
+    This view allows authenticated users with super admin permissions to retrieve a list of restaurants.
+    """
+
+    permission_classes = [permissions.IsAuthenticated, IsSuperadminOrRestaurantOwner]
+
+    def get(self, request):
+        try:
+            restaurant_id = request.user.restaurant.id
+            tables_with_qr = Table.objects.filter(Q(restaurant=restaurant_id) & Q(qrlink__isnull=False) & Q(is_active=True))
+            json_data_list = TableOutputSerializer(tables_with_qr, many=True ,context={'request': request})
+            response_data = {
+                "status": status.HTTP_200_OK,
+                "error": False,
+                "detail": json_data_list.data,
+                "message": "",
+            }
+            return Response(response_data)
+        except AttributeError:
+            response_data = {
+                "status": status.HTTP_400_BAD_REQUEST,
+                "error": True,
+                "detail": [],
+                "message": "User does not have an associated restaurant.",
+            }
+            return Response(response_data)
 class TableQRCodeView(APIView):
     def get(self, request, table_id):
         try:
             table = Table.objects.get(id=table_id)
         except Table.DoesNotExist:
             return Response({"error": "Table not found"}, status=404)
+        if table.qrlink is not None and table.is_active is not False:
+            return Response({"message": f"Table Number {table.tablenumber} QR Code already exists.", 'detail': [], 'error': False, "status":status.HTTP_403_FORBIDDEN})
+        else:
+            serializer = TableOutputSerializer(table, many=False, context={"request": request})
+            serialized_data = serializer.data
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_L,
+                box_size=10,
+                border=4,
+            )
+            qr.add_data(str(serialized_data))  # Use the table's ID for the QR code
+            qr.make(fit=True)
+            qr_img = qr.make_image(fill_color="black", back_color="white")
+            img_io = BytesIO()
+            qr_img.save(img_io, format='PNG')
+            
+            filename = f"table_{table.id}_qr.png"
+            qrimglink = ContentFile(img_io.getvalue(), name=filename)
+            table.qrlink = qrimglink
+            table.is_active = True
+            table.save()
+            return Response({"message": f"Table Number {table.tablenumber} QR Code created successfully", 'detail': [], 'error': False, "status":status.HTTP_201_CREATED})
+        
 
-
-        # Serialize the table data
-        serializer = TableOutputSerializer(table)
-        serialized_data = serializer.data
-
-        # Generate QR code
-        qr = qrcode.QRCode(
-            version=1,
-            error_correction=qrcode.constants.ERROR_CORRECT_L,
-            box_size=10,
-            border=4,
-        )
-        qr.add_data(str(serialized_data))  # Convert to string
-        qr.make(fit=True)
-
-        # Create an image from the QR Code instance
-        qr_img = qr.make_image(fill_color="black", back_color="white")
-
-        # Create a dynamic directory path based on the current date
-        current_date = datetime.now().strftime('%Y/%m/%d')
-        dynamic_path = f"media/table_qrcodes/{current_date}/"
-
-        # Create the directory if it doesn't exist
-        os.makedirs(dynamic_path, exist_ok=True)
-
-        # Save the image with a dynamic path
-        img_path = f"{dynamic_path}table_{table.id}_qr.png"
-        qr_img.save(img_path)
-
-        # Update the Table model with the QR code path
-        # table.qr_code_path = img_path
-        # table.save()
-
-        return Response({"qr_code_image": img_path})
 
 class TableListApiView(APIView):
     """
@@ -75,7 +99,7 @@ class TableListApiView(APIView):
     def get(self, request):
         restaurantid = request.user.restaurant.id
         tables = Table.objects.filter(restaurant = restaurantid)
-        restaurant_serializer = TableOutputSerializer(
+        restaurant_serializer = TableInputSerializer(
             tables, many=True, context={"request": request}
         )
         response_data = {
@@ -118,7 +142,7 @@ class TableCreateApiView(APIView):
             new_inventory = serializer.save(
                 tablenumber=int(tablenumber),
                 capacity=int(capacity),
-                is_occupied=bool(is_occupied),
+                is_occupied= True if is_occupied.lower() =='true' else False,
                 restaurant=restaurant,
             )
             new_inventory.save()

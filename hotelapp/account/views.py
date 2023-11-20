@@ -16,12 +16,15 @@ from rest_framework.generics import (
     RetrieveUpdateAPIView,
 )
 from django.contrib.auth import authenticate
+
+#from .Password import setPasswordForUser
 from .models import User
 from .serializers import (
     UserSerializer,
     # UserRegisterSerializer,
     PasswordResetSerializer,
     ForgotPasswordSerializer,
+    UserKictenStaffSerializer,
     # ChangePasswordSerializer,
 )
 from drf_spectacular.utils import extend_schema
@@ -32,6 +35,31 @@ from django.contrib.sites.shortcuts import get_current_site
 from .permissions import IsSuperAdmin
 from .utils import send_email_message
 from rest_framework.permissions import IsAuthenticated
+
+
+
+
+class CreateUserAPIView(APIView):
+    def post(self, request, *args, **kwargs):
+
+        first_name = request.data.get('first_name')
+        last_name = request.data.get('last_name')
+        phone_number = request.data.get('phone_number')
+        password = request.data.get('password')
+        role = 'kitchen_staff'
+
+        
+        serializer = UserKictenStaffSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save({
+                first_name,
+                last_name,
+                phone_number,
+                
+            })
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        
+        return Response({'status':status.HTTP_400_BAD_REQUEST,'message':'validation Error!', 'detail': serializer.errors, 'error':True} , status=status.HTTP_400_BAD_REQUEST)
 
 
 class CurrentUserApiView(APIView):
@@ -183,5 +211,6 @@ class ForgotPasswordApiView(APIView):
             status=status.HTTP_200_OK,
         )
         # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 

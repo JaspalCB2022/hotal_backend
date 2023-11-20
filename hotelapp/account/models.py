@@ -47,7 +47,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     role = models.CharField(max_length=20, choices=ROLES, default="user")
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
-    phone_number = models.CharField(null=True, blank=True, max_length=15)
+    phone_number = models.CharField(null=True, blank=True, max_length=15, unique=True)
     avatar = models.ImageField(
         upload_to="avatar/%Y/%m/%d/",
         null=True,
