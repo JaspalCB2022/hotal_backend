@@ -3,7 +3,6 @@ from .models import (
     Restaurant,
     Category,
     Table,
-    TableQR,
     MenuTypes,
     Menu_Subtype,
     UnitCategory,
@@ -15,7 +14,6 @@ from .models import (
 admin.site.register(Restaurant)
 admin.site.register(Category)
 admin.site.register(Table)
-admin.site.register(TableQR)
 admin.site.register(MenuTypes)
 admin.site.register(Menu_Subtype)
 admin.site.register(UnitCategory)

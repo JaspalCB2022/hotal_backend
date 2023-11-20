@@ -203,3 +203,25 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         token = super().get_token(user)
         token["role"] = user.role
         return token
+
+class UserKictenStaffSerializer(serializers.ModelSerializer):
+    first_name = serializers.CharField(required=True)
+    last_name = serializers.CharField(required=True)
+    phone_number = serializers.CharField(required=True)
+    password = serializers.CharField(max_length=60, min_length=8, write_only=True)
+    email = serializers.EmailField(required=True)
+
+    class Meta:
+        model = get_user_model()
+        fields = ['id', 'first_name', 'last_name', 'phone_number', 'password', 'is_active', 'role','email']
+        extra_kwargs = {'password': {'write_only': True}}
+
+    def create(self, validated_data):
+        user = get_user_model().objects.create_user(
+            email = validated_data['phone_number'],
+            first_name=validated_data['first_name'],
+            last_name=validated_data['last_name'],
+            phone_number=validated_data['phone_number'],
+            password=validated_data['password']
+        )
+        return user

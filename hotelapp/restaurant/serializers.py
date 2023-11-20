@@ -110,15 +110,10 @@ class TableInputSerializer(serializers.Serializer):
     tablenumber = serializers.IntegerField(required=True)
     capacity = serializers.IntegerField(required=True)
     is_occupied = serializers.BooleanField(required=True)
-
-
     def create(self, validated_data):
-        print("data >>>", validated_data)
-        # Extract the restaurant and table_number from the validated data
         restaurant = validated_data['restaurant']
         tablenumber = validated_data['tablenumber']
         capacity = validated_data['capacity']
-        # Create and save the new Table instance
         if Table.objects.filter(restaurant=restaurant, tablenumber=tablenumber).exists():
             raise serializers.ValidationError("Table number already exists.")
         
@@ -149,7 +144,6 @@ class TableInputSerializer(serializers.Serializer):
         instance.is_occupied = is_occupied
         instance.save()
         return instance
-
 
 class TableOutputSerializer(serializers.ModelSerializer):   
     class Meta:
