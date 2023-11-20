@@ -73,31 +73,21 @@ class Table(BaseModel):
     tablenumber = models.IntegerField()
     capacity = models.IntegerField()
     is_occupied = models.BooleanField(default=False)
+    qrlink = models.ImageField(
+        upload_to="table_qrcodes",
+        null=True,
+        blank=True,
+    )
+    is_active = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = "Table"
         verbose_name_plural = "Table"
 
     def __str__(self):
-        return self.tablenumber
+        return f"{self.restaurant.name} - {self.tablenumber}"
 
-
-class TableQR(BaseModel):
-    table = models.ForeignKey(Table, on_delete=models.CASCADE, related_name="table")
-    qrlink = models.ImageField(
-        upload_to="tableqr/%Y/%m/%d/",
-        null=True,
-        blank=True,
-    )
-    is_active = models.BooleanField(default=True)
-
-    class Meta:
-        verbose_name = "Table QR"
-        verbose_name_plural = "Table QR"
-
-    def __str__(self):
-        return self.tablenumber
-
+   
 
 class MenuTypes(BaseModel):
     name = models.CharField(max_length=20)
@@ -114,13 +104,7 @@ class MenuTypes(BaseModel):
 
 
 class Menu_Subtype(BaseModel):
-    CATEGORY = (
-        ("veg", "Veg"),
-        ("non-veg", "Non-Veg"),
-    )
-    categorytype = models.CharField(
-        max_length=20, choices=CATEGORY, null=True, default=None
-    )
+    
     name = models.CharField(max_length=20)
     menutype = models.ForeignKey(
         MenuTypes, on_delete=models.CASCADE, related_name="menusubtypes"
@@ -159,8 +143,9 @@ class UnitCategory(models.Model):
 
 
 class Inventory(BaseModel):
-    CATEGORY = (("veg", "Veg"), ("non-veg", "Non-Veg"), ("other", "Other"))
+    CATEGORY = (("veg", "Veg"), ("non-veg", "Non-Veg"), ("other", "Other"), ("all", "All"))
 
+    item_categorytype = models.CharField(max_length=20, choices=CATEGORY, null=True, default='all')
     name = models.CharField(max_length=20)
     restaurant = models.ForeignKey(
         Restaurant, on_delete=models.CASCADE, related_name="inventories"
@@ -176,11 +161,10 @@ class Inventory(BaseModel):
     )
     total_quantity = models.PositiveIntegerField()
     available_quantity = models.PositiveIntegerField()
-    unit_price = models.PositiveIntegerField()
+    unit_price = models.DecimalField(max_digits=5, decimal_places=2)
     unit_category = models.ForeignKey(
         UnitCategory, on_delete=models.CASCADE, related_name="unit_categories"
     )
-
     class Meta:
         verbose_name = "Inventory"
         verbose_name_plural = "Inventories"
