@@ -70,7 +70,7 @@ class Table(BaseModel):
     restaurant = models.ForeignKey(
         Restaurant, on_delete=models.CASCADE, related_name="restaurants"
     )
-    tablenumber = models.IntegerField()
+    tablenumber = models.IntegerField(unique=True)
     capacity = models.IntegerField()
     is_occupied = models.BooleanField(default=False)
     qrlink = models.ImageField(

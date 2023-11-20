@@ -21,10 +21,9 @@ from django.contrib.auth import authenticate
 from .models import User
 from .serializers import (
     UserSerializer,
-    # UserRegisterSerializer,
+    UserRegisterSerializer,
     PasswordResetSerializer,
     ForgotPasswordSerializer,
-    UserKictenStaffSerializer,
     # ChangePasswordSerializer,
 )
 from drf_spectacular.utils import extend_schema
@@ -32,34 +31,39 @@ from django.db import IntegrityError
 from django.http import Http404
 from django.template.loader import render_to_string
 from django.contrib.sites.shortcuts import get_current_site
-from .permissions import IsSuperAdmin
+from .permissions import IsSuperAdmin, IsSuperadminOrRestaurantOwner
 from .utils import send_email_message
 from rest_framework.permissions import IsAuthenticated
 
 
 
 
-class CreateUserAPIView(APIView):
-    def post(self, request, *args, **kwargs):
+# class CreateKitchenUserAPIView(APIView):
+#     permission_classes = [IsAuthenticated, IsSuperadminOrRestaurantOwner]
 
-        first_name = request.data.get('first_name')
-        last_name = request.data.get('last_name')
-        phone_number = request.data.get('phone_number')
-        password = request.data.get('password')
-        role = 'kitchen_staff'
-
+#     def post(self, request, *args, **kwargs):
+#         first_name = request.data.get('first_name')
+#         last_name = request.data.get('last_name')
+#         email = request.data.get('email')
+#         password = request.data.get('password')
+#         is_active =  request.data.get('is_active')
+#         role = 'kitchen_staff'
         
-        serializer = UserKictenStaffSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save({
-                first_name,
-                last_name,
-                phone_number,
-                
-            })
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
         
-        return Response({'status':status.HTTP_400_BAD_REQUEST,'message':'validation Error!', 'detail': serializer.errors, 'error':True} , status=status.HTTP_400_BAD_REQUEST)
+#         serializer = UserRegisterSerializer(data=request.data)
+#         if serializer.is_valid():
+#             new_serializer = serializer.save(
+#                 first_name= first_name,
+#                 last_name= last_name,
+#                 email= email,
+#                 password= password,
+#                 role= role,
+#                 is_active =  True if is_active.lower() == 'ture' else False,
+#             )
+#             new_serializer.save()
+#             return Response({'status':status.HTTP_201_CREATED,'message':'user created successfully.', 'detail': [], 'error':False} , status=status.HTTP_201_CREATED)
+        
+#         return Response({'status':status.HTTP_400_BAD_REQUEST,'message':'validation Error!', 'detail': serializer.errors, 'error':True} , status=status.HTTP_400_BAD_REQUEST)
 
 
 class CurrentUserApiView(APIView):

@@ -110,18 +110,20 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             "phone_number",
             "is_active",
             "role",
+            "is_staff"
         ]
         read_only_fields = [
             "is_active",
             "role",
             "created_at",
             "updated_at",
+            'is_staff'
         ]
 
     def create(self, validated_data):
-        if validated_data.get("password") != validated_data.get("confirm_password"):
-            raise serializers.ValidationError("Password don't match")
-        validated_data.pop("confirm_password")
+        # if validated_data.get("password") != validated_data.get("confirm_password"):
+        #     raise serializers.ValidationError("Password don't match")
+        # validated_data.pop("confirm_password")
         user = get_user_model().objects.create_user(**validated_data)
         return user
 
@@ -204,12 +206,12 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         token["role"] = user.role
         return token
 
-class UserKictenStaffSerializer(serializers.ModelSerializer):
+
     first_name = serializers.CharField(required=True)
     last_name = serializers.CharField(required=True)
     phone_number = serializers.CharField(required=True)
     password = serializers.CharField(max_length=60, min_length=8, write_only=True)
-    email = serializers.EmailField(required=True)
+    email = serializers.EmailField(required=False)
 
     class Meta:
         model = get_user_model()
@@ -218,7 +220,7 @@ class UserKictenStaffSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user = get_user_model().objects.create_user(
-            email = validated_data['phone_number'],
+            email = validated_data['email'],
             first_name=validated_data['first_name'],
             last_name=validated_data['last_name'],
             phone_number=validated_data['phone_number'],
