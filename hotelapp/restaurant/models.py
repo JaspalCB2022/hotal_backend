@@ -96,7 +96,7 @@ class TableQR(BaseModel):
         verbose_name_plural = "Table QR"
 
     def __str__(self):
-        return self.tablenumber
+        return self.qrlink
 
 
 class MenuTypes(BaseModel):
@@ -114,6 +114,7 @@ class MenuTypes(BaseModel):
 
 
 class Menu_Subtype(BaseModel):
+    
     name = models.CharField(max_length=20)
     menutype = models.ForeignKey(
         MenuTypes, on_delete=models.CASCADE, related_name="menusubtypes"

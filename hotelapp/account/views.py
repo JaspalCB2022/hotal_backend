@@ -51,7 +51,7 @@ class CurrentUserApiView(APIView):
         try:
             print("Request>>>", self.request)
             userObj = User.objects.get(email=self.request.user)
-            user = UserSerializer(userObj).data
+            user = UserSerializer(userObj, context={'request':request}).data
             
             resObj = {'status':status.HTTP_200_OK,'message':'', 'detail':user, 'error':False}
             return Response(resObj, status=status.HTTP_200_OK)

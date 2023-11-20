@@ -1,17 +1,17 @@
 import re
 from rest_framework import serializers
-from .models import Restaurant
+from .models import Restaurant, Table
 
 
 class RestaurantInputSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=300)
     description = serializers.CharField(max_length=500)
-    opening_time = serializers.TimeField()
-    closing_time = serializers.TimeField()
+    # opening_time = serializers.TimeField()
+    # closing_time = serializers.TimeField()
     phone_number = serializers.CharField(max_length=20)
     address = serializers.CharField()
     email = serializers.EmailField()
-    logo = serializers.ImageField()
+    # logo = serializers.ImageField()
     is_open_on_sunday = serializers.BooleanField(default=False)
     is_open_on_monday = serializers.BooleanField(default=False)
     is_open_on_tuesday = serializers.BooleanField(default=False)
@@ -104,3 +104,54 @@ class RestaurantOutputSerializer(serializers.ModelSerializer):
         if obj.logo:
             return self.context["request"].build_absolute_uri(obj.logo.url)
         return None
+
+
+class TableInputSerializer(serializers.Serializer):
+    tablenumber = serializers.IntegerField(required=True)
+    capacity = serializers.IntegerField(required=True)
+    is_occupied = serializers.BooleanField(required=True)
+
+
+    def create(self, validated_data):
+        print("data >>>", validated_data)
+        # Extract the restaurant and table_number from the validated data
+        restaurant = validated_data['restaurant']
+        tablenumber = validated_data['tablenumber']
+        capacity = validated_data['capacity']
+        # Create and save the new Table instance
+        if Table.objects.filter(restaurant=restaurant, tablenumber=tablenumber).exists():
+            raise serializers.ValidationError("Table number already exists.")
+        
+        if capacity <= 0:
+            raise serializers.ValidationError("Capacity must be greater than zero.")
+        
+        table_instance = Table.objects.create(**validated_data)
+        return table_instance
+    
+    def update(self, instance, validated_data):
+        # Extract the restaurant and table_number from the validated data
+        restaurant = validated_data.get('restaurant', instance.restaurant)
+        tablenumber = validated_data.get('tablenumber', instance.tablenumber)
+        capacity = validated_data.get('capacity', instance.capacity)
+        is_occupied = validated_data.get('is_occupied', instance.is_occupied)
+        # Check if the updated combination already exists
+        if Table.objects.filter(restaurant_id=restaurant.id, table_number=tablenumber).exclude(id=instance.id).exists():
+            raise serializers.ValidationError("Table with this restaurant and table number already exists.")
+
+        # Custom validation for capacity to ensure it's greater than zero
+        if capacity <= 0:
+            raise serializers.ValidationError("Capacity must be greater than zero.")
+
+        # Update and save the existing Table instance
+        instance.restaurant = restaurant
+        instance.tablenumber = tablenumber
+        instance.capacity = capacity
+        instance.is_occupied = is_occupied
+        instance.save()
+        return instance
+
+
+class TableOutputSerializer(serializers.ModelSerializer):   
+    class Meta:
+        model = Table
+        fields = "__all__"

@@ -1,3 +1,5 @@
+import os
+from datetime import timedelta, datetime
 from django.shortcuts import get_object_or_404
 from django.http import Http404
 from rest_framework.views import APIView
@@ -5,15 +7,128 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework import authentication, permissions
 from drf_spectacular.utils import extend_schema
-from .serializers import RestaurantInputSerializer, RestaurantOutputSerializer
-from .models import Restaurant, Category
-from .permissions import IsSuperAdmin
+from .serializers import RestaurantInputSerializer, RestaurantOutputSerializer, TableInputSerializer, TableOutputSerializer
+from .models import Restaurant, Category, Table, TableQR
+from .permissions import IsSuperAdmin, IsRestaurant, IsSuperadminOrRestaurantOwner
 from account.serializers import UserRegisterSerializer
 from django.contrib.auth import get_user_model
 from django.db import transaction
 
 User = get_user_model()
 
+# views.py
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from .models import Table
+import qrcode
+
+class TableQRCodeView(APIView):
+    def get(self, request, table_id):
+        try:
+            table = Table.objects.get(id=table_id)
+        except Table.DoesNotExist:
+            return Response({"error": "Table not found"}, status=404)
+
+
+        # Serialize the table data
+        serializer = TableOutputSerializer(table)
+        serialized_data = serializer.data
+
+        # Generate QR code
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(str(serialized_data))  # Convert to string
+        qr.make(fit=True)
+
+        # Create an image from the QR Code instance
+        qr_img = qr.make_image(fill_color="black", back_color="white")
+
+        # Create a dynamic directory path based on the current date
+        current_date = datetime.now().strftime('%Y/%m/%d')
+        dynamic_path = f"media/table_qrcodes/{current_date}/"
+
+        # Create the directory if it doesn't exist
+        os.makedirs(dynamic_path, exist_ok=True)
+
+        # Save the image with a dynamic path
+        img_path = f"{dynamic_path}table_{table.id}_qr.png"
+        qr_img.save(img_path)
+
+        # Update the Table model with the QR code path
+        # table.qr_code_path = img_path
+        # table.save()
+
+        return Response({"qr_code_image": img_path})
+
+class TableListApiView(APIView):
+    """
+    API view for retrieving a list of restaurants.
+    This view allows authenticated users with super admin permissions to retrieve a list of restaurants.
+    """
+
+    permission_classes = [permissions.IsAuthenticated, IsSuperadminOrRestaurantOwner]
+
+    def get(self, request):
+        restaurantid = request.user.restaurant.id
+        tables = Table.objects.filter(restaurant = restaurantid)
+        restaurant_serializer = TableOutputSerializer(
+            tables, many=True, context={"request": request}
+        )
+        response_data = {
+            "status": status.HTTP_200_OK,
+            "error": False,
+            "detail": restaurant_serializer.data,
+            "message": "",
+        }
+        return Response(response_data)
+class TableCreateApiView(APIView):
+    """
+    API view for updating a restaurant's details.
+
+    This view allows authenticated users with super admin, or restaurant owner  permissions to create a Table.
+    ```
+    {
+        "table_number": 3,
+        "capacity": 5,
+        "is_occupied" : false
+    }
+
+    ```
+    """
+
+    permission_classes = [permissions.IsAuthenticated, IsSuperadminOrRestaurantOwner]
+
+    @extend_schema(request=None, responses=TableInputSerializer)
+    @transaction.atomic
+    def post(self, request):
+        #print("request.data >>>", request.data)
+        tablenumber = request.data.get("tablenumber")
+        capacity = request.data.get("capacity")
+        is_occupied = request.data.get("is_occupied")
+        restaurant = request.user.restaurant
+        #print("restaurant >>>", restaurant)
+        serializer = TableInputSerializer(data=request.data)
+        
+        if serializer.is_valid(raise_exception=True):
+            #serializer.save()
+            new_inventory = serializer.save(
+                tablenumber=int(tablenumber),
+                capacity=int(capacity),
+                is_occupied=bool(is_occupied),
+                restaurant=restaurant,
+            )
+            new_inventory.save()
+            return Response({'message': 'table created successfully.', 'detail': [], 'error': False, 'status': status.HTTP_200_OK}, status=status.HTTP_200_OK)
+        else:
+            return Response(
+                {"message": "Validation Error", 'detail': serializer.errors, 'error': True, 'status': status.HTTP_400_BAD_REQUEST},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+   
 
 class RestaurantCreateApiView(APIView):
     """
@@ -122,7 +237,7 @@ class RestaurantUpdateApiView(APIView):
     ```
     """
 
-    permission_classes = [permissions.IsAuthenticated, IsSuperAdmin]
+    permission_classes = [permissions.IsAuthenticated, IsSuperadminOrRestaurantOwner]
 
     @transaction.atomic
     def put(self, request, restaurant_id):

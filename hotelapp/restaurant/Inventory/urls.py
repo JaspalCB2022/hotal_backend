@@ -1,4 +1,5 @@
 from django.urls import path
+from .menuview import MenuTypeListApiView, MenuSubTypeListApiView
 from .views import (
     InventoryListApiView,
     InventoryCreateApiView,
@@ -39,4 +40,7 @@ urlpatterns = [
         InventoryDetailApiView.as_view(),
         name="inventory_detail_view",
     ),
+    path("menutypes/", MenuTypeListApiView.as_view(), name="list_restaurant_menutypes"),
+    path("menusubtype/<int:menutype_id>/", MenuSubTypeListApiView.as_view(), name="list_restaurant_menu_sub_type"),
 ]
+
