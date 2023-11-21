@@ -14,7 +14,6 @@ class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(max_length=60, min_length=8, write_only=True)
     # restaurant = RestaurantOutputSerializer(many=False, required=False, context = {"request": request} )
 
-    
     class Meta:
         model = get_user_model()
         fields = [
@@ -37,8 +36,6 @@ class UserSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-
-  
 
     def validate_password(self, value):
         valid_password(value)
@@ -85,14 +82,15 @@ class UserSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        request = self.context.get('request')
-        
+        request = self.context.get("request")
+
         if request:
-            representation['restaurant'] = RestaurantOutputSerializer(
-                instance.restaurant, context={'request': request}
+            representation["restaurant"] = RestaurantOutputSerializer(
+                instance.restaurant, context={"request": request}
             ).data
 
         return representation
+
 
 class UserRegisterSerializer(serializers.ModelSerializer):
     # password = serializers.CharField(max_length=60, min_length=6, write_only=True)
@@ -110,15 +108,9 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             "phone_number",
             "is_active",
             "role",
-            "is_staff"
+            "is_staff",
         ]
-        read_only_fields = [
-            "is_active",
-            "role",
-            "created_at",
-            "updated_at",
-            'is_staff'
-        ]
+        read_only_fields = ["is_active", "role", "created_at", "updated_at", "is_staff"]
 
     def create(self, validated_data):
         # if validated_data.get("password") != validated_data.get("confirm_password"):
@@ -205,25 +197,3 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         token = super().get_token(user)
         token["role"] = user.role
         return token
-
-
-    first_name = serializers.CharField(required=True)
-    last_name = serializers.CharField(required=True)
-    phone_number = serializers.CharField(required=True)
-    password = serializers.CharField(max_length=60, min_length=8, write_only=True)
-    email = serializers.EmailField(required=False)
-
-    class Meta:
-        model = get_user_model()
-        fields = ['id', 'first_name', 'last_name', 'phone_number', 'password', 'is_active', 'role','email']
-        extra_kwargs = {'password': {'write_only': True}}
-
-    def create(self, validated_data):
-        user = get_user_model().objects.create_user(
-            email = validated_data['email'],
-            first_name=validated_data['first_name'],
-            last_name=validated_data['last_name'],
-            phone_number=validated_data['phone_number'],
-            password=validated_data['password']
-        )
-        return user

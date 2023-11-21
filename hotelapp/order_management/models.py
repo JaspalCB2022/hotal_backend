@@ -18,7 +18,7 @@ class Customer(BaseModel):
     )
     name = models.CharField(max_length=200)
     phone_number = models.CharField(max_length=20)
-    address = models.TextField()
+    address = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return f"{self.name}"
@@ -60,7 +60,9 @@ class Order(BaseModel):
     table_no = models.ForeignKey(
         Table, on_delete=models.SET_NULL, related_name="orders_at_table", null=True
     )
-    order_type = models.CharField(max_length=20, choices=ORDER_TYPE_CHOICES)
+    order_type = models.CharField(
+        max_length=20, choices=ORDER_TYPE_CHOICES, default="pending"
+    )
     payment_id = models.CharField(max_length=100, blank=True, null=True)
     order_status = models.CharField(max_length=100, choices=ORDER_STATUS_CHOICES)
     payment_status = models.CharField(max_length=50, blank=True, null=True)

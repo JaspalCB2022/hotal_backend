@@ -25,4 +25,4 @@ class OrderAdmin(admin.ModelAdmin):
         "order_status",
     )
     list_filter = ("restaurant_id", "order_status", "order_type")
-    filter_horizontal = ("order_items",)  # Use filter_horizontal for ManyToMany fields
+    filter_horizontal = ("order_items",)
