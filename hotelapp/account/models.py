@@ -53,7 +53,6 @@ class User(AbstractBaseUser, PermissionsMixin):
         null=True,
         blank=True,
     )
-    
     password_reset_token = models.UUIDField(null=True, blank=True, unique=True)
     token_create_at = models.DateTimeField(null=True, blank=True, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)

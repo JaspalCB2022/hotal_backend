@@ -293,7 +293,7 @@ class Migration(migrations.Migration):
                 ),
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 (
-                    "categorytype",
+                    "item_categorytype",
                     models.CharField(
                         choices=[
                             ("veg", "Veg"),
