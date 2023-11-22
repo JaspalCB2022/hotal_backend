@@ -112,7 +112,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             "is_staff",
             "restaurant",
         ]
-        read_only_fields = ["role", "created_at", "updated_at", "is_staff"]
+        read_only_fields = ["is_active", "role", "created_at", "updated_at", "is_staff"]
 
     def create(self, validated_data):
         # if validated_data.get("password") != validated_data.get("confirm_password"):
