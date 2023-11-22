@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import Order, OrderItem, Customer
-from hotelapp.error_handler import ApplicationError
+from restaurant.Inventory.serializers import InventoryOutputSerializer
 
 
 class CustomerSerializer(serializers.ModelSerializer):
@@ -11,10 +11,12 @@ class CustomerSerializer(serializers.ModelSerializer):
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
+    inventory = InventoryOutputSerializer(source="inventory_id")
+
     class Meta:
         model = OrderItem
         fields = "__all__"
-        read_only_fields = ["restaurant_id"]
+        read_only_fields = ["restaurant_id", "inventory"]
 
 
 class OrderSerializer(serializers.ModelSerializer):

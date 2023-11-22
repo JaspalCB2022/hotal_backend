@@ -6,12 +6,12 @@ from restaurant.models import Inventory
 from rest_framework import permissions
 from restaurant.permissions import IsRestaurant
 from .serializers import OrderSerializer, CustomerSerializer
-
+from .models import Order
 
 # Create your views here.
 
 
-class CreateDineInOrderApiView(APIView):
+class CreateOrderApiView(APIView):
     """
     Api to create order of type "dine-in","take-away" and "home-delivery".
 
@@ -140,6 +140,7 @@ class CreateDineInOrderApiView(APIView):
             }
             return Response(response_data, status=status.HTTP_201_CREATED)
 
+    @transaction.atomic
     def create_take_away_order(self, request):
         order_serializer = OrderSerializer(
             data=request.data, context={"request": request}
@@ -193,6 +194,7 @@ class CreateDineInOrderApiView(APIView):
             }
             return Response(response_data, status=status.HTTP_201_CREATED)
 
+    @transaction.atomic
     def create_home_delivery_order(self, request):
         order_serializer = OrderSerializer(
             data=request.data, context={"request": request}
@@ -295,3 +297,37 @@ class CreateDineInOrderApiView(APIView):
                 }
                 return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
             return self.create_home_delivery_order(request)
+
+
+class ListOrderApiView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsRestaurant]
+
+    def get(self, request):
+        restaurant = request.user.restaurant
+
+        try:
+            orders = Order.objects.filter(restaurant_id=restaurant)
+            order_serializer = OrderSerializer(orders, many=True)
+            response_data = {
+                "status": status.HTTP_400_BAD_REQUEST,
+                "error": False,
+                "detail": order_serializer.data,
+                "message": "",
+            }
+            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+        except Order.DoesNotExist:
+            response_data = {
+                "status": status.HTTP_400_BAD_REQUEST,
+                "error": True,
+                "detail": "",
+                "message": "Orders for the given restaurant not found.",
+            }
+            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            response_data = {
+                "status": status.HTTP_400_BAD_REQUEST,
+                "error": True,
+                "detail": "",
+                "message": f"{str(e)}",
+            }
+            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
