@@ -99,6 +99,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
     # confirm_password = serializers.CharField(
     #     max_length=60, min_length=6, write_only=True
     # )
+    is_active = serializers.BooleanField()
 
     class Meta:
         model = get_user_model()
@@ -114,7 +115,6 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             "restaurant",
         ]
         read_only_fields = [
-            "is_active",
             "role",
             "created_at",
             "updated_at",

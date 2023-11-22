@@ -266,7 +266,7 @@ class RestaurantUpdateApiView(APIView):
     @transaction.atomic
     def put(self, request, restaurant_id):
         try:
-            restaurant = Restaurant.objects.get(pk=restaurant_id)
+            restaurant = Restaurant.objects.get(id=restaurant_id)
         except Restaurant.DoesNotExist:
             return Response(
                 {"error": "Restaurant not found"}, status=status.HTTP_404_NOT_FOUND
@@ -274,10 +274,11 @@ class RestaurantUpdateApiView(APIView):
         serializer = RestaurantInputSerializer(restaurant, data=request.data)
         if serializer.is_valid(raise_exception=True):
             updatd_restaurant = serializer.save()
-            user = User.objects.get(restaurant=updatd_restaurant)
-            user.first_name = updatd_restaurant.name
-            user.email = updatd_restaurant.email
-            user.save()
+            #print("updatd_restaurant >>>", updatd_restaurant)
+            # user = User.objects.get(restaurant=updatd_restaurant)
+            # user.first_name = updatd_restaurant.name
+            # user.email = updatd_restaurant.email
+            # user.save()
             updatd_restaurant_serializer = RestaurantOutputSerializer(
                 updatd_restaurant, context={"request": request}
             )
