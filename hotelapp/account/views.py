@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 import uuid
 # Create your views here.
 from rest_framework.views import APIView
@@ -21,10 +21,9 @@ from django.contrib.auth import authenticate
 from .models import User
 from .serializers import (
     UserSerializer,
-    # UserRegisterSerializer,
+    UserRegisterSerializer,
     PasswordResetSerializer,
     ForgotPasswordSerializer,
-    UserKictenStaffSerializer,
     # ChangePasswordSerializer,
 )
 from drf_spectacular.utils import extend_schema
@@ -32,40 +31,136 @@ from django.db import IntegrityError
 from django.http import Http404
 from django.template.loader import render_to_string
 from django.contrib.sites.shortcuts import get_current_site
-from .permissions import IsSuperAdmin
+from .permissions import IsSuperAdmin, IsSuperadminOrRestaurantOwner
 from .utils import send_email_message
 from rest_framework.permissions import IsAuthenticated
+from django.db.models import Q
 
 
 
+class GetAllKitchenUserApiView(APIView):
+    """
+    Api view for listing users
+    This view retrieves a list of All Active and In-Active Kitchen Staff Users.
+    It is restricted to superadmin or restaurant owner users only.
+    """
+    permission_classes = [IsAuthenticated, IsSuperadminOrRestaurantOwner]
+    serializer_class = UserSerializer
+    def get(self, request):
+        """
+        Return a list of All Active and In-Active Kitchen Staff Users.
+        """ 
+        isactive=request.query_params.get("isactive")
+        #print("isactive >>>>", isactive)
+        try:
+            if isactive and isactive.lower() =='true':
+                userObj = User.objects.filter(Q(role="kitchen_staff") & Q(is_active = True) & Q(is_staff=True) )
+                user = UserSerializer(userObj, many=True ,context={'request':request}).data
+                resObj = {'status':status.HTTP_200_OK,'message':'', 'detail':user, 'error':False}
+            elif  isactive and isactive.lower() =='false':
+                userObj = User.objects.filter(Q(role="kitchen_staff") & Q(is_active = False) & Q(is_staff=True) )
+                user = UserSerializer(userObj, many=True ,context={'request':request}).data
+                resObj = {'status':status.HTTP_200_OK,'message':'', 'detail':user, 'error':False}
+            else:
+                resObj = {'status':status.HTTP_400_BAD_REQUEST,'message':'', 'detail':[], 'error':True}
 
-class CreateUserAPIView(APIView):
+            return Response(resObj, status=status.HTTP_200_OK)
+            
+        except User.DoesNotExist:
+            resObj = {'status':status.HTTP_200_OK,'message':'Kitchen Staff users does not exists.', 'detail':[], 'error':False}
+            return Response(resObj, status=status.HTTP_200_OK)
+
+
+
+class CreateKitchenUserAPIView(APIView):
+    permission_classes = [IsAuthenticated, IsSuperadminOrRestaurantOwner]
+    @extend_schema(request=None, responses=UserRegisterSerializer)
     def post(self, request, *args, **kwargs):
-
         first_name = request.data.get('first_name')
         last_name = request.data.get('last_name')
-        phone_number = request.data.get('phone_number')
+        email = request.data.get('email')
         password = request.data.get('password')
+        is_active =  request.data.get('is_active')
         role = 'kitchen_staff'
-
-        
-        serializer = UserKictenStaffSerializer(data=request.data)
+        serializer = UserRegisterSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save({
-                first_name,
-                last_name,
-                phone_number,
-                
-            })
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            new_serializer = serializer.save(
+                first_name= first_name,
+                last_name= last_name,
+                email= email,
+                password= password,
+                role= role,
+                is_active =  True if is_active.lower() == 'ture' else False,
+                is_staff =  True,
+                restaurant= request.user.restaurant
+            )
+            new_serializer.save()
+            return Response({'status':status.HTTP_201_CREATED,'message':'user created successfully.', 'detail': [], 'error':False} , status=status.HTTP_201_CREATED)
         
         return Response({'status':status.HTTP_400_BAD_REQUEST,'message':'validation Error!', 'detail': serializer.errors, 'error':True} , status=status.HTTP_400_BAD_REQUEST)
 
+    def put(self, request, userid,*args, **kwargs):
+        restaurant = getattr(request.user, 'restaurant', None)
+        # Check if the current user has a restaurant
+        if not restaurant:
+            response_data = {
+                "status": status.HTTP_401_UNAUTHORIZED,
+                "error": False,
+                "detail": "",
+                "message": "Your user account does not have a associated restaurant.",
+            }
+            return Response(response_data, status=status.HTTP_401_UNAUTHORIZED)
+
+        checkUser = get_object_or_404(User, id=userid)
+
+        # Check if the checkUser has a restaurant
+        if not checkUser.restaurant:
+            response_data = {
+                "status": status.HTTP_404_NOT_FOUND,
+                "error": False,
+                "detail": "",
+                "message": "The specified user does not have an associated restaurant.",
+            }
+            return Response(response_data, status=status.HTTP_404_NOT_FOUND)
+
+        # Check if the current user's restaurant is not equal to the checkUser's restaurant
+        if restaurant.id != checkUser.restaurant.id:
+            response_data = {
+                "status": status.HTTP_401_UNAUTHORIZED,
+                "error": False,
+                "detail": "",
+                "message": "You are not authorized to perform this action.",
+            }
+            return Response(response_data, status=status.HTTP_401_UNAUTHORIZED)
+        else:
+            # Proceed with your intended logic here
+            # ...
+            kitchenuser_input_serializer = UserRegisterSerializer(
+                User, data=request.data
+            )
+            if kitchenuser_input_serializer.is_valid(raise_exception=True):
+                updated_kitchenuser = kitchenuser_input_serializer.save()
+                updated_kitchenuser_serializer = UserRegisterSerializer(
+                    updated_kitchenuser, context={"request": request}
+                )
+                response_data = {
+                    "status": status.HTTP_200_OK,
+                    "error": False,
+                    "detail": updated_kitchenuser_serializer.data,
+                    "message": "",
+                }
+                return Response(response_data, status=status.HTTP_200_OK)
+            # response_data = {
+            #     "status": status.HTTP_200_OK,
+            #     "error": False,
+            #     "detail": "",
+            #     "message": "Action performed successfully.",
+            # }
+            # return Response(response_data, status=status.HTTP_200_OK)
 
 class CurrentUserApiView(APIView):
     """
     Api view for listing users
-
     This view retrieves a list of users, excluding those with the "superadmin" role.
     It is restricted to superadmin users only.
     """
@@ -80,7 +175,6 @@ class CurrentUserApiView(APIView):
             print("Request>>>", self.request)
             userObj = User.objects.get(email=self.request.user)
             user = UserSerializer(userObj, context={'request':request}).data
-            
             resObj = {'status':status.HTTP_200_OK,'message':'', 'detail':user, 'error':False}
             return Response(resObj, status=status.HTTP_200_OK)
         except User.DoesNotExist:
@@ -136,7 +230,6 @@ class ResetPasswordAPIView(APIView):
 class ResetPasswordAPIView(APIView):
     """
     API view for setting a user's password.
-
     This view provides endpoints for setting a user's password using a valid password reset token.
     """
 

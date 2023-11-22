@@ -70,7 +70,7 @@ class Table(BaseModel):
     restaurant = models.ForeignKey(
         Restaurant, on_delete=models.CASCADE, related_name="restaurants"
     )
-    tablenumber = models.IntegerField()
+    tablenumber = models.IntegerField(unique=True)
     capacity = models.IntegerField()
     is_occupied = models.BooleanField(default=False)
     qrlink = models.ImageField(
@@ -87,7 +87,6 @@ class Table(BaseModel):
     def __str__(self):
         return f"{self.restaurant.name} - {self.tablenumber}"
 
-   
 
 class MenuTypes(BaseModel):
     name = models.CharField(max_length=20)
@@ -104,7 +103,6 @@ class MenuTypes(BaseModel):
 
 
 class Menu_Subtype(BaseModel):
-    
     name = models.CharField(max_length=20)
     menutype = models.ForeignKey(
         MenuTypes, on_delete=models.CASCADE, related_name="menusubtypes"
@@ -143,9 +141,16 @@ class UnitCategory(models.Model):
 
 
 class Inventory(BaseModel):
-    CATEGORY = (("veg", "Veg"), ("non-veg", "Non-Veg"), ("other", "Other"), ("all", "All"))
+    CATEGORY = (
+        ("veg", "Veg"),
+        ("non-veg", "Non-Veg"),
+        ("other", "Other"),
+        ("all", "All"),
+    )
 
-    item_categorytype = models.CharField(max_length=20, choices=CATEGORY, null=True, default='all')
+    item_categorytype = models.CharField(
+        max_length=20, choices=CATEGORY, null=True, default="all"
+    )
     name = models.CharField(max_length=20)
     restaurant = models.ForeignKey(
         Restaurant, on_delete=models.CASCADE, related_name="inventories"
@@ -165,6 +170,7 @@ class Inventory(BaseModel):
     unit_category = models.ForeignKey(
         UnitCategory, on_delete=models.CASCADE, related_name="unit_categories"
     )
+
     class Meta:
         verbose_name = "Inventory"
         verbose_name_plural = "Inventories"

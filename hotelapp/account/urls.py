@@ -4,7 +4,7 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenBlacklistView,
 )
-from .views import CurrentUserApiView, ResetPasswordAPIView, ForgotPasswordApiView, CreateUserAPIView
+from .views import CurrentUserApiView, GetAllKitchenUserApiView, ResetPasswordAPIView, ForgotPasswordApiView ,CreateKitchenUserAPIView
 
 urlpatterns = [
     path("login/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
@@ -17,5 +17,7 @@ urlpatterns = [
         ResetPasswordAPIView.as_view(),
         name="reset_password",
     ),
-    path('add/kitchenstaff/',CreateUserAPIView.as_view(), name='add_kitchen_staff')
+    path('add/kitchenstaff/',CreateKitchenUserAPIView.as_view(), name='add_kitchen_staff'),
+    path('update/kitchenstaff/<int:userid>/',CreateKitchenUserAPIView.as_view(), name='update_kitchen_staff'),
+    path('all/kitchenstaff/', GetAllKitchenUserApiView.as_view(),name='all_kitchen_staff')
 ]
