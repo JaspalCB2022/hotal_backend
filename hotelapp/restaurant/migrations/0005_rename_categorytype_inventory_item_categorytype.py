@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RenameField(
             model_name='inventory',
-            old_name='categorytype',
+            old_name='item_categorytype',
             new_name='item_categorytype',
         ),
     ]

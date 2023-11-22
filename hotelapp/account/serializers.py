@@ -97,6 +97,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
     # confirm_password = serializers.CharField(
     #     max_length=60, min_length=6, write_only=True
     # )
+    is_active = serializers.BooleanField()
 
     class Meta:
         model = get_user_model()
@@ -109,8 +110,9 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             "is_active",
             "role",
             "is_staff",
+            "restaurant",
         ]
-        read_only_fields = ["is_active", "role", "created_at", "updated_at", "is_staff"]
+        read_only_fields = ["role", "created_at", "updated_at", "is_staff"]
 
     def create(self, validated_data):
         # if validated_data.get("password") != validated_data.get("confirm_password"):
@@ -118,6 +120,13 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         # validated_data.pop("confirm_password")
         user = get_user_model().objects.create_user(**validated_data)
         return user
+
+    def update(self, instance, validated_data):
+        instance.first_name = validated_data.get("first_name", instance.first_name)
+        instance.last_name = validated_data.get("last_name", instance.last_name)
+        instance.is_active = validated_data.get("is_active", instance.is_active)
+        instance.save()
+        return instance
 
 
 class PasswordResetSerializer(serializers.Serializer):
