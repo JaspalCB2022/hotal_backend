@@ -4,7 +4,7 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenBlacklistView,
 )
-from .views import CurrentUserApiView, GetAllKitchenUserApiView, ResetPasswordAPIView, ForgotPasswordApiView ,CreateKitchenUserAPIView
+from .views import CurrentUserApiView, GetAllKitchenUserApiView, ResetPasswordAPIView, ForgotPasswordApiView ,CreateKitchenUserAPIView, UpdateKitcheStaffUserApiView, KitcheStaffChangePasswordAPIView, KitchenStaffDeleteAPIView
 
 urlpatterns = [
     path("login/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
@@ -18,6 +18,8 @@ urlpatterns = [
         name="reset_password",
     ),
     path('add/kitchenstaff/',CreateKitchenUserAPIView.as_view(), name='add_kitchen_staff'),
-    path('update/kitchenstaff/<int:userid>/',CreateKitchenUserAPIView.as_view(), name='update_kitchen_staff'),
-    path('all/kitchenstaff/', GetAllKitchenUserApiView.as_view(),name='all_kitchen_staff')
+    path('update/kitchenstaff/<int:userid>/',UpdateKitcheStaffUserApiView.as_view(), name='update_kitchen_staff'),
+    path('changepassword/kitchenstaff/',KitcheStaffChangePasswordAPIView.as_view(), name='change_password_kitchen_staff'),
+    path('all/kitchenstaff/', GetAllKitchenUserApiView.as_view(),name='all_kitchen_staff'),
+    path('delete/kitchenstaff/<int:pk>/', KitchenStaffDeleteAPIView.as_view(), name='delete_Kitchen_staff'),
 ]

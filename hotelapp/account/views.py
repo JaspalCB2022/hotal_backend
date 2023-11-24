@@ -20,10 +20,12 @@ from django.contrib.auth import authenticate
 #from .Password import setPasswordForUser
 from .models import User
 from .serializers import (
+    KicthenStaffUpdateSerializer,
     UserSerializer,
     UserRegisterSerializer,
     PasswordResetSerializer,
     ForgotPasswordSerializer,
+    KitchenStaffChangePasswordSerializer
     # ChangePasswordSerializer,
 )
 from drf_spectacular.utils import extend_schema
@@ -35,7 +37,124 @@ from .permissions import IsSuperAdmin, IsSuperadminOrRestaurantOwner
 from .utils import send_email_message
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
+from django.contrib.auth import get_user_model
 
+
+class KitchenStaffDeleteAPIView(APIView):
+    permission_classes = [IsAuthenticated, IsSuperadminOrRestaurantOwner]
+
+    def delete(self, request, pk, format=None):
+        try:
+            user = User.objects.get(id=pk)
+            if user.role is 'kitchen_staff':
+                user.delete()
+                return Response({
+                    "status": status.HTTP_204_NO_CONTENT,
+                    "error": False,
+                    "detail": [],
+                    "message": "User delete Successfully.",
+                    },status=status.HTTP_204_NO_CONTENT)
+            else:
+                return Response({
+                    "status": status.HTTP_404_NOT_FOUND,
+                    "error": False,
+                    "detail": [],
+                    "message": "Kitchen Staff User not Found.",
+                    },status=status.HTTP_204_NO_CONTENT)
+        except User.DoesNotExist:
+            return Response({
+                "status": status.HTTP_404_NOT_FOUND,
+                "error": True,
+                "detail": [],
+                "message": "User does not exist",
+            },status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': f'An error occurred: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class KitcheStaffChangePasswordAPIView(APIView):
+    permission_classes = [IsAuthenticated, IsSuperadminOrRestaurantOwner]
+    @extend_schema(request=None, responses=KitchenStaffChangePasswordSerializer)
+    def post(self, request):
+        serializer = KitchenStaffChangePasswordSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            try:
+                user = get_user_model().objects.get(email=email)
+            except get_user_model().DoesNotExist:
+                return Response({
+                "status": status.HTTP_404_NOT_FOUND,
+                "error": True,
+                "detail": "",
+                "message": 'User not found',
+            }, status=status.HTTP_404_NOT_FOUND)
+
+            serializer.update_password(user, serializer.validated_data)
+            response_data = {
+                "status": status.HTTP_200_OK,
+                "error": False,
+                "detail": "",
+                "message": 'Password changed successfully',
+            }
+            return Response(response_data, status=status.HTTP_200_OK)
+        return Response({
+                "status": status.HTTP_400_BAD_REQUEST,
+                "error": True,
+                "detail": serializer.errors,
+                "message": 'Validation Error!',
+            } , status=status.HTTP_400_BAD_REQUEST)
+
+class UpdateKitcheStaffUserApiView(APIView):
+    permission_classes = [IsAuthenticated, IsSuperadminOrRestaurantOwner]
+    @extend_schema(request=None, responses=KicthenStaffUpdateSerializer)
+    def put(self, request, userid,*args, **kwargs):
+        restaurant = getattr(request.user, 'restaurant', None)
+        # Check if the current user has a restaurant
+        if not restaurant:
+            response_data = {
+                "status": status.HTTP_401_UNAUTHORIZED,
+                "error": False,
+                "detail": "",
+                "message": "Your user account does not have a associated restaurant.",
+            }
+            return Response(response_data, status=status.HTTP_401_UNAUTHORIZED)
+
+        checkUser = get_object_or_404(User, id=userid)
+
+        # Check if the checkUser has a restaurant
+        if not checkUser.restaurant:
+            response_data = {
+                "status": status.HTTP_404_NOT_FOUND,
+                "error": False,
+                "detail": "",
+                "message": "The specified user does not have an associated restaurant.",
+            }
+            return Response(response_data, status=status.HTTP_404_NOT_FOUND)
+
+        # Check if the current user's restaurant is not equal to the checkUser's restaurant
+        if restaurant.id != checkUser.restaurant.id:
+            response_data = {
+                "status": status.HTTP_401_UNAUTHORIZED,
+                "error": False,
+                "detail": "",
+                "message": "You are not authorized to perform this action.",
+            }
+            return Response(response_data, status=status.HTTP_401_UNAUTHORIZED)
+        else:
+            #staff_instance = get_user_model().objects.get(pk=userid)  # Retrieve the instance by its primary key
+            serializer = KicthenStaffUpdateSerializer(checkUser, data=request.data)
+            if serializer.is_valid():
+                serializer.save()  # This will call the update method in your serializer
+                response_data = {
+                    "status": status.HTTP_200_OK,
+                    "error": False,
+                    "detail": "",
+                    "message": "User data updated successfully.",
+                }
+            # return Response(response_data, status=status.HTTP_200_OK)
+                return Response(response_data, status=status.HTTP_200_OK)
+            return Response({'status':status.HTTP_400_BAD_REQUEST,'message':'validation Error!', 'detail': serializer.errors, 'error':True} )
+               
+            
 
 
 class GetAllKitchenUserApiView(APIView):
@@ -99,64 +218,9 @@ class CreateKitchenUserAPIView(APIView):
         
         return Response({'status':status.HTTP_400_BAD_REQUEST,'message':'validation Error!', 'detail': serializer.errors, 'error':True} , status=status.HTTP_400_BAD_REQUEST)
 
-    def put(self, request, userid,*args, **kwargs):
-        restaurant = getattr(request.user, 'restaurant', None)
-        # Check if the current user has a restaurant
-        if not restaurant:
-            response_data = {
-                "status": status.HTTP_401_UNAUTHORIZED,
-                "error": False,
-                "detail": "",
-                "message": "Your user account does not have a associated restaurant.",
-            }
-            return Response(response_data, status=status.HTTP_401_UNAUTHORIZED)
+    
 
-        checkUser = get_object_or_404(User, id=userid)
 
-        # Check if the checkUser has a restaurant
-        if not checkUser.restaurant:
-            response_data = {
-                "status": status.HTTP_404_NOT_FOUND,
-                "error": False,
-                "detail": "",
-                "message": "The specified user does not have an associated restaurant.",
-            }
-            return Response(response_data, status=status.HTTP_404_NOT_FOUND)
-
-        # Check if the current user's restaurant is not equal to the checkUser's restaurant
-        if restaurant.id != checkUser.restaurant.id:
-            response_data = {
-                "status": status.HTTP_401_UNAUTHORIZED,
-                "error": False,
-                "detail": "",
-                "message": "You are not authorized to perform this action.",
-            }
-            return Response(response_data, status=status.HTTP_401_UNAUTHORIZED)
-        else:
-            # Proceed with your intended logic here
-            # ...
-            kitchenuser_input_serializer = UserRegisterSerializer(
-                User, data=request.data
-            )
-            if kitchenuser_input_serializer.is_valid(raise_exception=True):
-                updated_kitchenuser = kitchenuser_input_serializer.save()
-                updated_kitchenuser_serializer = UserRegisterSerializer(
-                    updated_kitchenuser, context={"request": request}
-                )
-                response_data = {
-                    "status": status.HTTP_200_OK,
-                    "error": False,
-                    "detail": updated_kitchenuser_serializer.data,
-                    "message": "",
-                }
-                return Response(response_data, status=status.HTTP_200_OK)
-            # response_data = {
-            #     "status": status.HTTP_200_OK,
-            #     "error": False,
-            #     "detail": "",
-            #     "message": "Action performed successfully.",
-            # }
-            # return Response(response_data, status=status.HTTP_200_OK)
 
 class CurrentUserApiView(APIView):
     """
