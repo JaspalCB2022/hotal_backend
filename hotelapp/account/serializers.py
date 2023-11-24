@@ -121,8 +121,6 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         # validated_data.pop("confirm_password")
         user = get_user_model().objects.create_user(**validated_data)
         return user
-    
-    
 
 
 class KicthenStaffUpdateSerializer(serializers.ModelSerializer):
@@ -139,7 +137,7 @@ class KicthenStaffUpdateSerializer(serializers.ModelSerializer):
         ]
 
     def update(self, instance, validated_data):
-        validated_data.pop('id', None)
+        validated_data.pop("id", None)
         instance.first_name = validated_data.get("first_name", instance.first_name)
         instance.last_name = validated_data.get("last_name", instance.last_name)
         instance.is_active = validated_data.get("is_active", instance.is_active)
@@ -160,9 +158,9 @@ class KitchenStaffChangePasswordSerializer(serializers.Serializer):
         return value
 
     def validate(self, data):
-        email = data['email']
-        new_password = data['new_password']
-        confirm_password = data['confirm_password']
+        email = data["email"]
+        new_password = data["new_password"]
+        confirm_password = data["confirm_password"]
 
         try:
             user = get_user_model().objects.get(email=email)
@@ -170,19 +168,18 @@ class KitchenStaffChangePasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError("User not found with this email.")
 
         if new_password != confirm_password:
-            raise serializers.ValidationError("New password and confirm password do not match.")
+            raise serializers.ValidationError(
+                "New password and confirm password do not match."
+            )
 
         return data
 
     def update_password(self, user, validated_data):
-        new_password = validated_data['new_password']
+        new_password = validated_data["new_password"]
         user.password = make_password(new_password)
         user.save()
 
         return user
-
-
-
 
 
 class PasswordResetSerializer(serializers.Serializer):

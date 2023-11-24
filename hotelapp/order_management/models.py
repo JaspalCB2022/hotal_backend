@@ -61,10 +61,13 @@ class Order(BaseModel):
         Table, on_delete=models.SET_NULL, related_name="orders_at_table", null=True
     )
     order_type = models.CharField(
-        max_length=20, choices=ORDER_TYPE_CHOICES, default="pending"
+        max_length=20,
+        choices=ORDER_TYPE_CHOICES,
     )
     payment_id = models.CharField(max_length=100, blank=True, null=True)
-    order_status = models.CharField(max_length=100, choices=ORDER_STATUS_CHOICES)
+    order_status = models.CharField(
+        max_length=100, choices=ORDER_STATUS_CHOICES, default="pending"
+    )
     payment_status = models.CharField(max_length=50, blank=True, null=True)
     order_items = models.ManyToManyField(OrderItem, related_name="order_items_in_order")
     session_id = models.CharField(max_length=100, null=True, blank=True)

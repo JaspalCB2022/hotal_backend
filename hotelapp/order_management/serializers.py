@@ -11,6 +11,15 @@ class CustomerSerializer(serializers.ModelSerializer):
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
+    # inventory = InventoryOutputSerializer(source="inventory_id")
+
+    class Meta:
+        model = OrderItem
+        fields = "__all__"
+        read_only_fields = ["restaurant_id", "inventory"]
+
+
+class OrderItemOutputSerializer(serializers.ModelSerializer):
     inventory = InventoryOutputSerializer(source="inventory_id")
 
     class Meta:
@@ -39,3 +48,12 @@ class OrderSerializer(serializers.ModelSerializer):
             order_items.append(order_item)
         order.order_items.add(*order_items)
         return order
+
+
+class OrderOutputSerializer(serializers.ModelSerializer):
+    order_items = OrderItemOutputSerializer(many=True)
+
+    class Meta:
+        model = Order
+        fields = "__all__"
+        read_only_fields = ["customer_id", "restaurant_id", "order_status"]

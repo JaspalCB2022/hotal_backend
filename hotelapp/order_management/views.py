@@ -1,11 +1,20 @@
+from django.utils import timezone
+from datetime import timedelta
 from django.db import transaction
+from django.db.models import Q
+from django.core.paginator import Paginator
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from restaurant.models import Inventory
 from rest_framework import permissions
 from restaurant.permissions import IsRestaurant
-from .serializers import OrderSerializer, CustomerSerializer
+from .serializers import (
+    OrderSerializer,
+    CustomerSerializer,
+    OrderItemOutputSerializer,
+    OrderOutputSerializer,
+)
 from .models import Order
 
 # Create your views here.
@@ -300,21 +309,81 @@ class CreateOrderApiView(APIView):
 
 
 class ListOrderApiView(APIView):
+    """
+    A view to list orders based on specified filters for a restaurant.
+
+    URL Structure:
+    http://127.0.0.1:8000/api/order/list/?order_type=take-away&search=9636978524&order_status=pending&payment_status=paid&page=1&page_size=5&sort_by=created_at&sort_order=asc&time_filter=yesterday
+    """
+
     permission_classes = [permissions.IsAuthenticated, IsRestaurant]
 
     def get(self, request):
         restaurant = request.user.restaurant
+        order_type = request.query_params.get("order_type")
+        order_status = request.query_params.get("order_status")
+        payment_status = request.query_params.get("payment_status")
+        search_query = request.query_params.get("search")
+        page_number = request.query_params.get("page", 1)
+        page_size = request.query_params.get("page_size", 10)
+        time_filter = request.query_params.get("time_filter")
+        sort_by = request.query_params.get("sort_by")
+        sort_order = request.query_params.get("sort_order")
+
+        filters = {}
+
+        if order_type:
+            filters["order_type"] = order_type
+        if order_status:
+            filters["order_status"] = order_status
+        if payment_status:
+            filters["payment_status"] = payment_status
+        queryset = Order.objects.filter(restaurant_id=restaurant)
 
         try:
-            orders = Order.objects.filter(restaurant_id=restaurant)
-            order_serializer = OrderSerializer(orders, many=True)
+            if time_filter == "recent":
+                today = timezone.now().date()
+                orders = queryset.filter(created_at__date=today, **filters)
+            elif time_filter == "yesterday":
+                yesterday = timezone.now().date() - timedelta(days=1)
+                orders = queryset.filter(created_at__date=yesterday, **filters)
+            else:
+                orders = queryset.filter(**filters)
+            if sort_by in [
+                "id",
+                "table_no",
+                "customer_id__phone_number",
+                "order_status",
+                "created_at",
+            ]:
+                if sort_order == "asc":
+                    orders = orders.order_by(sort_by)
+                elif sort_order == "desc":
+                    orders = orders.order_by(f"-{sort_by}")
+            if search_query:
+                orders = orders.filter(
+                    Q(id__icontains=search_query)
+                    | Q(table_no__tablenumber__icontains=search_query)
+                    | Q(customer_id__phone_number__icontains=search_query)
+                    | Q(order_status__icontains=search_query)
+                    | Q(created_at__icontains=search_query)
+                )
+            paginator = Paginator(orders, page_size)
+            paginated_orders = paginator.page(page_number)
+            order_serializer = OrderOutputSerializer(paginated_orders, many=True)
             response_data = {
-                "status": status.HTTP_400_BAD_REQUEST,
+                "status": status.HTTP_200_OK,
                 "error": False,
                 "detail": order_serializer.data,
-                "message": "",
+                "message": f"{len(order_serializer.data)} order found.",
+                "pagination_info": {
+                    "total_pages": paginator.num_pages,
+                    "current_page": paginated_orders.number,
+                    "total_items": paginator.count,
+                    "page_size": paginator.per_page,
+                },
             }
-            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+            return Response(response_data, status=status.HTTP_200_OK)
         except Order.DoesNotExist:
             response_data = {
                 "status": status.HTTP_400_BAD_REQUEST,
