@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from restaurant.serializers import RestaurantOutputSerializer
+from django.contrib.auth.hashers import check_password, make_password
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -121,12 +122,67 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         user = get_user_model().objects.create_user(**validated_data)
         return user
     
+    
+
+
+class KicthenStaffUpdateSerializer(serializers.ModelSerializer):
+    first_name = serializers.CharField(max_length=100)
+    last_name = serializers.CharField(max_length=100)
+    is_active = serializers.BooleanField()
+
+    class Meta:
+        model = get_user_model()
+        fields = [
+            "first_name",
+            "last_name",
+            "is_active",
+        ]
+
     def update(self, instance, validated_data):
+        validated_data.pop('id', None)
         instance.first_name = validated_data.get("first_name", instance.first_name)
         instance.last_name = validated_data.get("last_name", instance.last_name)
         instance.is_active = validated_data.get("is_active", instance.is_active)
         instance.save()
         return instance
+
+
+class KitchenStaffChangePasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    new_password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
+
+    def validate_email(self, value):
+        try:
+            user = get_user_model().objects.get(email=value)
+        except get_user_model().DoesNotExist:
+            raise serializers.ValidationError("User not found with this email.")
+        return value
+
+    def validate(self, data):
+        email = data['email']
+        new_password = data['new_password']
+        confirm_password = data['confirm_password']
+
+        try:
+            user = get_user_model().objects.get(email=email)
+        except get_user_model().DoesNotExist:
+            raise serializers.ValidationError("User not found with this email.")
+
+        if new_password != confirm_password:
+            raise serializers.ValidationError("New password and confirm password do not match.")
+
+        return data
+
+    def update_password(self, user, validated_data):
+        new_password = validated_data['new_password']
+        user.password = make_password(new_password)
+        user.save()
+
+        return user
+
+
+
 
 
 class PasswordResetSerializer(serializers.Serializer):
