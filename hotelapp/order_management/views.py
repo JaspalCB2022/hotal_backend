@@ -9,6 +9,8 @@ from rest_framework import status
 from restaurant.models import Inventory
 from rest_framework import permissions
 from restaurant.permissions import IsRestaurant
+from restaurant.models import Restaurant
+
 from .serializers import (
     OrderSerializer,
     CustomerSerializer,
@@ -96,8 +98,9 @@ class CreateOrderApiView(APIView):
 
     @transaction.atomic
     def create_dine_in_order(self, request):
+        restaurant = request.user.restaurant
         order_serializer = OrderSerializer(
-            data=request.data, context={"request": request}
+            data=request.data, context={"restaurant": restaurant}
         )
         customer_serializer = CustomerSerializer(data=request.data["customer_data"])
         if order_serializer.is_valid(
@@ -151,8 +154,9 @@ class CreateOrderApiView(APIView):
 
     @transaction.atomic
     def create_take_away_order(self, request):
+        restaurant = request.user.restaurant
         order_serializer = OrderSerializer(
-            data=request.data, context={"request": request}
+            data=request.data, context={"restaurant": restaurant}
         )
         customer_serializer = CustomerSerializer(data=request.data["customer_data"])
         if order_serializer.is_valid(
@@ -184,7 +188,7 @@ class CreateOrderApiView(APIView):
 
             customer = customer_serializer.save(restaurant_id=request.user.restaurant)
             order = order_serializer.save(
-                order_type="take-away",
+                # order_type="take-away",
                 customer_id=customer,
                 restaurant_id=request.user.restaurant,
             )
@@ -205,8 +209,9 @@ class CreateOrderApiView(APIView):
 
     @transaction.atomic
     def create_home_delivery_order(self, request):
+        restaurant = request.user.restaurant
         order_serializer = OrderSerializer(
-            data=request.data, context={"request": request}
+            data=request.data, context={"restaurant": restaurant}
         )
         customer_serializer = CustomerSerializer(data=request.data["customer_data"])
         if order_serializer.is_valid(
@@ -400,3 +405,58 @@ class ListOrderApiView(APIView):
                 "message": f"{str(e)}",
             }
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AddItemsToCart(APIView):
+    def post(self, request):
+        restaurant_id = request.data.get("restaurant_id")
+        restaurant = Restaurant.objects.get(id=restaurant_id)
+        order_serializer = OrderSerializer(
+            data=request.data, context={"restaurant": restaurant}
+        )
+        customer_serializer = CustomerSerializer(data=request.data["customer_data"])
+        if order_serializer.is_valid(
+            raise_exception=True
+        ) and customer_serializer.is_valid(raise_exception=True):
+            ordered_items = order_serializer.validated_data.get("order_items", [])
+            for item in ordered_items:
+                product = item.get("inventory_id")
+                quantity_ordered = item.get("quantity", 0)
+                try:
+                    inventory_item = Inventory.objects.get(id=product.id)
+                except Inventory.DoesNotExist:
+                    response_data = {
+                        "status": status.HTTP_400_BAD_REQUEST,
+                        "error": True,
+                        "detail": "",
+                        "message": f"Product {product} not found in inventory",
+                    }
+                    return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+                if inventory_item.available_quantity < quantity_ordered:
+                    response_data = {
+                        "status": status.HTTP_400_BAD_REQUEST,
+                        "error": True,
+                        "detail": "",
+                        "message": f"Insufficient quantity for product {product}",
+                    }
+                    return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+            customer = customer_serializer.save(restaurant_id=restaurant)
+            order = order_serializer.save(
+                order_type="dine-in", customer_id=customer, restaurant_id=restaurant
+            )
+            for item in order.order_items.all():
+                inventory_item = Inventory.objects.get(id=item.inventory_id.id)
+                inventory_item.available_quantity -= item.quantity
+                inventory_item.save()
+            response_data = {
+                "status": status.HTTP_201_CREATED,
+                "error": False,
+                "detail": {
+                    "order": order_serializer.data,
+                    "customer": customer_serializer.data,
+                },
+                "message": "",
+            }
+            return Response(response_data, status=status.HTTP_201_CREATED)

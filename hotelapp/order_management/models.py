@@ -17,6 +17,7 @@ class Customer(BaseModel):
         Restaurant, on_delete=models.CASCADE, related_name="customers"
     )
     name = models.CharField(max_length=200)
+    email = models.EmailField(blank=True, null=True)
     phone_number = models.CharField(max_length=20)
     address = models.TextField(blank=True, null=True)
 
@@ -51,6 +52,20 @@ class Order(BaseModel):
         ("confirmed", "Confirmed"),
         ("cancelled", "Cancelled"),
     )
+
+    PAYMENT_METHOD_CHOICES = (
+        ("counter", "Counter"),
+        ("online", "Online"),
+    )
+    PAYMENT_STATUS_CHOICES = (
+        ("pending", "Pending"),
+        ("completed", "Completed"),
+        ("failed", "Failed"),
+        ("refunded", "Refunded"),
+        ("cancelled", "Cancelled"),
+        ("authorized", "Authorized"),
+    )
+
     restaurant_id = models.ForeignKey(
         Restaurant, on_delete=models.CASCADE, related_name="orders_received"
     )
@@ -68,7 +83,16 @@ class Order(BaseModel):
     order_status = models.CharField(
         max_length=100, choices=ORDER_STATUS_CHOICES, default="pending"
     )
-    payment_status = models.CharField(max_length=50, blank=True, null=True)
+    payment_method = models.CharField(
+        max_length=50, choices=PAYMENT_METHOD_CHOICES, blank=True, null=True
+    )
+    payment_status = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        choices=PAYMENT_STATUS_CHOICES,
+        default="pending",
+    )
     order_items = models.ManyToManyField(OrderItem, related_name="order_items_in_order")
     session_id = models.CharField(max_length=100, null=True, blank=True)
 
